@@ -116,7 +116,7 @@ Because we've saved our defaults, there will be a new file called `awsutil_confi
 We would normally create an SSM session like this:
 
 ```shell
-aws sso login --profiledev
+aws sso login --profile dev
 aws ssm --profile dev start-session --target i-0c15ff251abee847f
 ```
 
