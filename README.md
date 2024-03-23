@@ -131,8 +131,6 @@ We can launch a terminal using a different profile by specifying the profile and
 awsutil terminal --profile prod --instance i-0c15ff251abee847f
 ```
 
-The `awsutil terminal` command needs to know what shell we want, since the Go code needs to ensure that stdin, stdout, and stderr are all redirected properly so the operation is seamless. Make sure you first set the shell with `awsutil configure --shell`. However, if we have not saved any defaults, we can issue the full command like this:
-
 ### What if our authentication session has expired?
 
 If we try to issue an AWS CLI command without first logging in, or after our session has expired, we would get a rude response. We'd then need to log in, then re-attempt our command. This is simplified with `awsutil` because it determines if we don't have a valid authentication session and will log in with our default profile before executing the command.
