@@ -131,6 +131,32 @@ We can launch a terminal using a different profile by specifying the profile and
 awsutil terminal --profile prod --instance i-0c15ff251abee847f
 ```
 
+
+
+### Starting a Bastion Session
+
+We can start a bastion host tunnel, but this requires a few parameters so we first need to configure them. We need the bastion instance ID, the host we want to tunnel to, the remote port we want to forward, and the local port.
+
+```shell
+awsutil configure -profile <profile> -bastion-instance <instance ID> -bastion-host <host name> -bastion-port <port> -bastion-local <local port>
+```
+
+This all gets stored in the `awsutil_config.json` file. Now, to start the tunnel, it's as simple as this:
+
+```shell
+awsutil bastion
+```
+
+Alternatively, we can start the tunnel the first time and save the settings in one go:
+
+```shell
+awsutil bastion -profile <profile> -bastion-instance <instance ID> -bastion-host <host name> -bastion-port <port> -bastion-local <local port>
+```
+
+After this, we can start our tunnel again with just `awsutil bastion`.
+
+
+
 ### What if our authentication session has expired?
 
 If we try to issue an AWS CLI command without first logging in, or after our session has expired, we would get a rude response. We'd then need to log in, then re-attempt our command. This is simplified with `awsutil` because it determines if we don't have a valid authentication session and will log in with our default profile before executing the command.
