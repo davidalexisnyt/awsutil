@@ -43,8 +43,9 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: awsutil login --profile <aws cli profile>")
 		fmt.Println("       awsutil instances [--profile <aws cli profile>] <filter prefix")
-		fmt.Println("       awsutil terminal [--profile <aws cli profile>] [<instance  ID>]")
-		fmt.Println("       awsutil bastion [--profile <aws cli profile>] [--bastion-instance <value>] [--bastion-host <value>] [--bastion-port <value>] [--bastion-local <value>]")
+		fmt.Println("       awsutil terminal [--profile <aws cli profile>] [<instance id>]")
+		fmt.Println("       awsutil bastion [--profile <aws cli profile>] [--instance <bastion instance id>] [--host <remote host>] [--port <remote port>] [--local <local port>]")
+		fmt.Println("       awsutil configure [--profile <aws cli profile>] [--instance <instance id>] [--bastion-instance <value>] [--bastion-host <value>] [--bastion-port <value>] [--bastion-local <value>]")
 		fmt.Println()
 		os.Exit(1)
 	}
@@ -122,18 +123,21 @@ func login(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listInstances(args []string, config *Configuration) error {
-	const usageText string = "USAGE: awsutil instances [--profile <aws cli profile>] <filter string>"
-
 	flagSet := flag.NewFlagSet("instances", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:\n    awsutil instances [--profile <aws cli profile>] <filter string>")
+	}
 
 	if err := flagSet.Parse(args); err != nil {
-		return fmt.Errorf(usageText)
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
 	}
 
 	if len(flagSet.Args()) == 0 {
-		return fmt.Errorf("must specify instance filter prefix\n%s", usageText)
+		flagSet.Usage()
+		return fmt.Errorf("must specify instance filter prefix")
 	}
 
 	filter := flagSet.Args()[0]
@@ -252,18 +256,21 @@ func listInstances(args []string, config *Configuration) error {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // startSSMSession starts a remote SSM terminal session against the specified instance.
 func startSSMSession(args []string, config *Configuration) error {
-	const usageText string = "USAGE: awsutil terminal [--profile <aws cli profile>] [<instance ID>]"
-
-	flagSet := flag.NewFlagSet("ssm_session", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("terminal", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:\n    awsutil terminal [--profile <aws cli profile>] [<instance ID>]")
+	}
 
 	if err := flagSet.Parse(args); err != nil {
-		return fmt.Errorf(usageText)
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
 	}
 
 	if len(flagSet.Args()) == 0 && len(config.Instance) == 0 {
-		return fmt.Errorf("must specify the target instance ID\n%s", usageText)
+		flagSet.Usage()
+		return fmt.Errorf("must specify the target instance ID")
 	}
 
 	if len(*profile) != 0 {
@@ -319,22 +326,27 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		aws ssm start-session --target ${BASTION_INSTANCE_ID} \
 		--parameters host="zuoraetl-app-prd-db.cl5qpgfk7ct2.us-east-1.rds.amazonaws.com",portNumber="5433",localPortNumber="7002"
 	*/
-	const usageText string = "USAGE: awsutil terminal [--profile <aws cli profile>] [<instance ID>]"
-
-	flagSet := flag.NewFlagSet("ssm_session", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
-	bastionInstsance := flagSet.String("bastion-instance", "", "--bastion-instance <aws instance ID>")
-	bastionHost := flagSet.String("bastion-host", "", "--bastion-host <bastion host name>")
-	bastionPort := flagSet.Int("bastion-port", 0, "--bastion-port <port to forward>")
-	bastionLocalPort := flagSet.Int("bastion-local", 0, "--bastion-local <local port>")
-
+	bastionInstsance := flagSet.String("instance", "", "--instance <aws instance ID>")
+	bastionHost := flagSet.String("host", "", "--host <bastion host name>")
+	bastionPort := flagSet.Int("port", 0, "--port <port to forward>")
+	bastionLocalPort := flagSet.Int("local", 0, "-local <local port>")
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:")
+		fmt.Println("    awsutil configure [--profile <aws cli profile>] [--instance <instance id>]")
+		fmt.Println("                      [--bastion-instance <value>] [--bastion-host <value>]")
+		fmt.Println("                      [--bastion-port <value>] [--bastion-local <value>]")
+	}
 	if err := flagSet.Parse(args); err != nil {
-		return fmt.Errorf(usageText)
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
 	}
 
 	if len(flagSet.Args()) == 0 && len(config.Instance) == 0 {
-		return fmt.Errorf("must specify the target instance ID\n%s", usageText)
+		flagSet.Usage()
+		return fmt.Errorf("must specify the target instance ID")
 	}
 
 	if len(*profile) != 0 {
@@ -434,10 +446,10 @@ func saveConfiguration(fileName string, config *Configuration, options ...string
 	// Update the configuration with any supplied arguements before saving
 	if len(options) != 0 {
 		usageText := `USAGE:
-			awsutil configure --profile <profile> --instance <instance ID>
+		    awsutil configure [--profile <aws cli profile>] [--instance <instance id>] [--bastion-instance <value>] [--bastion-host <value>] [--bastion-port <value>] [--bastion-local <value>]
 		`
 
-		flagSet := flag.NewFlagSet("config", flag.ExitOnError)
+		flagSet := flag.NewFlagSet("configure", flag.ExitOnError)
 
 		profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 		profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
