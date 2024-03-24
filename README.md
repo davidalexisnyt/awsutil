@@ -204,11 +204,3 @@ awsutil terminal
 ```
 
 Both the profile and the resultant instance ID from the 1st command will be remembered for further commands.
-
-
-
-## Further Development
-
-- Start a bastion host SSM session
-- Save bastion instance ID separately from the "instanceId" for correcting to EC2 instances.
-
