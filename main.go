@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 )
@@ -173,7 +174,7 @@ func listInstances(args []string, config *Configuration) error {
 		login(args, config)
 	}
 
-	fmt.Println("\nInstances")
+	fmt.Printf("\nInstances (%s)\n", config.Profile)
 
 	command := exec.Command("aws", commandArgs...)
 	outputStream, err := command.StdoutPipe()
@@ -305,6 +306,20 @@ func startSSMSession(args []string, config *Configuration) error {
 		login(args, config)
 	}
 
+	// Let's set up to prevent Ctrl-C from killing the program. Instead, it must
+	// be handled with the SSM session.
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt)
+
+	defer func() {
+		signal.Stop(signalChan)
+	}()
+
+	select {
+	case <-signalChan:
+	default:
+	}
+
 	fmt.Println("\nStarting SSM session...")
 
 	command := exec.Command("aws", commandArgs...)
@@ -314,7 +329,7 @@ func startSSMSession(args []string, config *Configuration) error {
 
 	err := command.Run()
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	return nil
@@ -413,9 +428,9 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin
 
-	err := command.Run()
+	err := command.Start()
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return err
 	}
 
 	return nil
