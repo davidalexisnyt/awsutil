@@ -75,7 +75,7 @@ aws --profile dev ec2 describe-instances --query "Reservations[*].Instances[*].{
 We can simplify this:
 
 ```shell
-awsutil instances example --profile dev
+awsutil instances --profile dev example
 ```
 
 But wait... We've already set `dev` as our default profile using `awsutil configure --profile dev`. So we can just use:

@@ -41,6 +41,8 @@ func main() {
 	exePath, _ := os.Executable()
 	configFile := filepath.Join(filepath.Dir(exePath), "awsutil_config.json")
 
+	// os.Args = []string{"awsutil", "instances", "--profile=spg-prd", "zuoraetl"}
+
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: awsutil login --profile <aws cli profile>")
 		fmt.Println("       awsutil instances [--profile <aws cli profile>] <filter prefix")
@@ -163,6 +165,8 @@ func listInstances(args []string, config *Configuration) error {
 		commandArgs = append(commandArgs, "--profile", config.Profile)
 	}
 
+	fmt.Printf("\nInstances (%s)\n", config.Profile)
+
 	// Ensure that we're logged in before running the command.
 	if !isLoggedIn(config.Profile) {
 		args := []string{}
@@ -173,8 +177,6 @@ func listInstances(args []string, config *Configuration) error {
 
 		login(args, config)
 	}
-
-	fmt.Printf("\nInstances (%s)\n", config.Profile)
 
 	command := exec.Command("aws", commandArgs...)
 	outputStream, err := command.StdoutPipe()
