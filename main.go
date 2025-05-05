@@ -24,8 +24,13 @@ import (
 )
 
 type Configuration struct {
-	Profile  string  `json:"defaultProfile,omitempty"`
-	Instance string  `json:"defaultInstance,omitempty"`
+	DefaultProfile string             `json:"defaultProfile,omitempty"`
+	Profiles       map[string]Profile `json:"profiles,omitempty"`
+}
+
+type Profile struct {
+	Name     string  `json:"name,omitempty"`
+	Instance string  `json:"instance,omitempty"`
 	Bastion  Bastion `json:"bastion,omitempty"`
 }
 
@@ -40,8 +45,6 @@ type Bastion struct {
 func main() {
 	exePath, _ := os.Executable()
 	configFile := filepath.Join(filepath.Dir(exePath), "awsutil_config.json")
-
-	// os.Args = []string{"awsutil", "instances", "--profile=spg-prd", "zuoraetl"}
 
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: awsutil login --profile <aws cli profile>")
@@ -103,8 +106,8 @@ func login(args []string, config *Configuration) error {
 		commandArgs = append(commandArgs, "--profile", *profileFlag)
 	} else if len(*profileShort) != 0 {
 		commandArgs = append(commandArgs, "--profile", *profileShort)
-	} else if len(config.Profile) != 0 {
-		commandArgs = append(commandArgs, "--profile", config.Profile)
+	} else if len(config.DefaultProfile) != 0 {
+		commandArgs = append(commandArgs, "--profile", config.DefaultProfile)
 	}
 
 	command := exec.Command("aws", commandArgs...)
@@ -144,11 +147,9 @@ func listInstances(args []string, config *Configuration) error {
 	}
 
 	filter := flagSet.Args()[0]
-
-	if len(*profile) != 0 {
-		config.Profile = *profile
-	} else if len(*profileShort) != 0 {
-		config.Profile = *profileShort
+	currentProfile, err := ensureProfile(config, profile, profileShort)
+	if err != nil {
+		return err
 	}
 
 	commandArgs := []string{
@@ -161,19 +162,14 @@ func listInstances(args []string, config *Configuration) error {
 		"--output=json",
 	}
 
-	if len(config.Profile) != 0 {
-		commandArgs = append(commandArgs, "--profile", config.Profile)
-	}
+	commandArgs = append(commandArgs, "--profile", currentProfile)
 
-	fmt.Printf("\nInstances (%s)\n", config.Profile)
+	fmt.Printf("\nInstances (%s)\n", currentProfile)
 
 	// Ensure that we're logged in before running the command.
-	if !isLoggedIn(config.Profile) {
+	if !isLoggedIn(currentProfile) {
 		args := []string{}
-
-		if len(config.Profile) != 0 {
-			args = append(args, "--profile", config.Profile)
-		}
+		args = append(args, "--profile", currentProfile)
 
 		login(args, config)
 	}
@@ -243,8 +239,17 @@ func listInstances(args []string, config *Configuration) error {
 		return err
 	}
 
-	if len(instanceList) == 1 && !strings.Contains(instanceList[0][0]["Name"], "bastion") {
-		config.Instance = instanceList[0][0]["Instance"]
+	if len(instanceList) == 1 {
+		profileInfo := config.Profiles[currentProfile]
+		profileInfo.Name = currentProfile
+
+		if strings.Contains(instanceList[0][0]["Name"], "bastion") {
+			profileInfo.Bastion.Instance = instanceList[0][0]["Instance"]
+		} else {
+			profileInfo.Instance = instanceList[0][0]["Instance"]
+		}
+
+		config.Profiles[currentProfile] = profileInfo
 	}
 
 	for i := range len(instanceList) {
@@ -254,6 +259,25 @@ func listInstances(args []string, config *Configuration) error {
 	fmt.Println()
 
 	return nil
+}
+
+func ensureProfile(config *Configuration, profile *string, profileShort *string) (string, error) {
+	currentProfile := config.DefaultProfile
+
+	if len(*profile) != 0 {
+		currentProfile = *profile
+	} else if len(*profileShort) != 0 {
+		currentProfile = *profileShort
+	}
+
+	// Set the default profile in the configuration if currentProfile is not empty
+	// Otherewise fail with an error
+	if len(currentProfile) != 0 {
+		config.DefaultProfile = currentProfile
+	} else if len(config.DefaultProfile) == 0 {
+		return "", fmt.Errorf("must specify the target profile")
+	}
+	return currentProfile, nil
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -271,38 +295,41 @@ func startSSMSession(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	if len(flagSet.Args()) == 0 && len(config.Instance) == 0 {
+	currentProfile, err := ensureProfile(config, profile, profileShort)
+	if err != nil {
+		return err
+	}
+
+	profileInfo := config.Profiles[currentProfile]
+
+	if len(flagSet.Args()) == 0 && len(profileInfo.Instance) == 0 {
 		flagSet.Usage()
 		return fmt.Errorf("must specify the target instance ID")
 	}
 
-	if len(*profile) != 0 {
-		config.Profile = *profile
-	} else if len(*profileShort) != 0 {
-		config.Profile = *profileShort
-	}
+	config.DefaultProfile = currentProfile
 
 	if len(flagSet.Args()) != 0 {
-		config.Instance = flagSet.Args()[0]
+		profileInfo.Instance = flagSet.Args()[0]
 	}
 
 	commandArgs := []string{
 		"ssm",
 		"start-session",
 		"--target",
-		config.Instance,
+		profileInfo.Instance,
 	}
 
-	if len(config.Profile) != 0 {
-		commandArgs = append(commandArgs, "--profile", config.Profile)
+	if len(config.DefaultProfile) != 0 {
+		commandArgs = append(commandArgs, "--profile", currentProfile)
 	}
 
 	// Ensure that we're logged in before running the command.
-	if !isLoggedIn(config.Profile) {
+	if !isLoggedIn(config.DefaultProfile) {
 		args := []string{}
 
-		if len(config.Profile) != 0 {
-			args = append(args, "--profile", config.Profile)
+		if len(config.DefaultProfile) != 0 {
+			args = append(args, "--profile", config.DefaultProfile)
 		}
 
 		login(args, config)
@@ -329,8 +356,7 @@ func startSSMSession(args []string, config *Configuration) error {
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin
 
-	err := command.Run()
-	if err != nil {
+	if err = command.Run(); err != nil {
 		return err
 	}
 
@@ -339,10 +365,6 @@ func startSSMSession(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func startBastionTunnel(args []string, config *Configuration) error {
-	/*
-		aws ssm start-session --target ${BASTION_INSTANCE_ID} \
-		--parameters host="zuoraetl-app-prd-db.cl5qpgfk7ct2.us-east-1.rds.amazonaws.com",portNumber="5433",localPortNumber="7002"
-	*/
 	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -352,87 +374,113 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	bastionLocalPort := flagSet.Int("local", 0, "-local <local port>")
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:")
-		fmt.Println("    awsutil configure [--profile <aws cli profile>] [--instance <instance id>]")
-		fmt.Println("                      [--bastion-instance <value>] [--bastion-host <value>]")
-		fmt.Println("                      [--bastion-port <value>] [--bastion-local <value>]")
+		fmt.Println("    awsutil bastion [--profile <aws cli profile>] [--instance <instance id>]")
+		fmt.Println("                    [--host <remote host>] [--port <remote port>] [--local <local port>]")
 	}
 	if err := flagSet.Parse(args); err != nil {
 		flagSet.Usage()
 		return fmt.Errorf("failed to parse options")
 	}
 
-	if len(flagSet.Args()) == 0 && len(config.Instance) == 0 {
+	currentProfile, err := ensureProfile(config, profile, profileShort)
+	if err != nil {
+		return err
+	}
+
+	profileInfo := config.Profiles[currentProfile]
+
+	if len(flagSet.Args()) == 0 && len(profileInfo.Instance) == 0 {
 		flagSet.Usage()
 		return fmt.Errorf("must specify the target instance ID")
 	}
 
-	if len(*profile) != 0 {
-		config.Profile = *profile
-	} else if len(*profileShort) != 0 {
-		config.Profile = *profileShort
-	}
-
-	if len(*profile) != 0 {
-		config.Profile = *profile
-	} else if len(*profileShort) != 0 {
-		config.Profile = *profileShort
-	}
-
+	// Update bastion configuration from command line arguments
 	if len(*bastionInstsance) != 0 {
-		config.Bastion.Instance = *bastionInstsance
+		profileInfo.Bastion.Instance = *bastionInstsance
 	}
 
 	if len(*bastionHost) != 0 {
-		config.Bastion.Host = *bastionHost
+		profileInfo.Bastion.Host = *bastionHost
 	}
 
 	if *bastionPort != 0 {
-		config.Bastion.Port = *bastionPort
-	}
-	if *bastionLocalPort != 0 {
-		config.Bastion.LocalPort = *bastionLocalPort
+		profileInfo.Bastion.Port = *bastionPort
 	}
 
+	if *bastionLocalPort != 0 {
+		profileInfo.Bastion.LocalPort = *bastionLocalPort
+	}
+
+	// Set instance from command line arguments if provided
 	if len(flagSet.Args()) != 0 {
-		config.Instance = flagSet.Args()[0]
+		profileInfo.Instance = flagSet.Args()[0]
+	}
+
+	// Verify required configuration
+	if profileInfo.Bastion.Host == "" {
+		return fmt.Errorf("bastion host must be specified")
+	}
+
+	if profileInfo.Bastion.Port == 0 {
+		return fmt.Errorf("remote port must be specified")
+	}
+
+	if profileInfo.Bastion.LocalPort == 0 {
+		return fmt.Errorf("local port must be specified")
+	}
+
+	// Check if Session Manager plugin is installed
+	pluginCheck := exec.Command("session-manager-plugin")
+	if err := pluginCheck.Run(); err != nil {
+		return fmt.Errorf("AWS Session Manager plugin is not installed. Please install it first")
 	}
 
 	commandArgs := []string{
 		"ssm",
 		"start-session",
 		"--target",
-		config.Instance,
+		profileInfo.Instance,
 		"--document-name",
 		"AWS-StartPortForwardingSessionToRemoteHost",
 		"--parameters",
-		fmt.Sprintf(`host="%s",portNumber="%d",localPortNumber="%d"`, config.Bastion.Host, config.Bastion.Port, config.Bastion.LocalPort),
+		fmt.Sprintf(`host="%s",portNumber="%d",localPortNumber="%d"`, profileInfo.Bastion.Host, profileInfo.Bastion.Port, profileInfo.Bastion.LocalPort),
 	}
 
-	if len(config.Profile) != 0 {
-		commandArgs = append(commandArgs, "--profile", config.Profile)
+	if len(config.DefaultProfile) != 0 {
+		commandArgs = append(commandArgs, "--profile", config.DefaultProfile)
 	}
 
-	// Ensure that we're logged in before running the command.
-	if !isLoggedIn(config.Profile) {
+	// Ensure that we're logged in before running the command
+	if !isLoggedIn(config.DefaultProfile) {
 		args := []string{}
 
-		if len(config.Profile) != 0 {
-			args = append(args, "--profile", config.Profile)
+		if len(config.DefaultProfile) != 0 {
+			args = append(args, "--profile", config.DefaultProfile)
 		}
 
 		login(args, config)
 	}
 
-	fmt.Println("\nStarting Bastion session...")
+	fmt.Printf("\nStarting port forwarding session to %s:%d via bastion...\n", profileInfo.Bastion.Host, profileInfo.Bastion.Port)
 
 	command := exec.Command("aws", commandArgs...)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin
 
-	err := command.Start()
-	if err != nil {
-		return err
+	if err := command.Start(); err != nil {
+		return fmt.Errorf("failed to start session: %v", err)
+	}
+
+	// Wait for the command to complete or be interrupted
+	if err := command.Wait(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			// If the process was terminated by a signal (e.g. Ctrl+C), don't treat it as an error
+			if exitErr.ExitCode() == -1 {
+				return nil
+			}
+		}
+		return fmt.Errorf("session ended with error: %v", err)
 	}
 
 	return nil
@@ -484,31 +532,32 @@ func saveConfiguration(fileName string, config *Configuration, options ...string
 			return
 		}
 
-		if len(*profile) != 0 {
-			config.Profile = *profile
-		} else if len(*profileShort) != 0 {
-			config.Profile = *profileShort
+		currentProfile, err := ensureProfile(config, profile, profileShort)
+		if err != nil {
+			return
 		}
 
+		profileInfo := config.Profiles[currentProfile]
+
 		if len(*instance) != 0 {
-			config.Instance = *instance
+			profileInfo.Instance = *instance
 		} else if len(*instanceShort) != 0 {
-			config.Instance = *instanceShort
+			profileInfo.Instance = *instanceShort
 		}
 
 		if len(*bastionInstsance) != 0 {
-			config.Bastion.Instance = *bastionInstsance
+			profileInfo.Bastion.Instance = *bastionInstsance
 		}
 
 		if len(*bastionHost) != 0 {
-			config.Bastion.Host = *bastionHost
+			profileInfo.Bastion.Host = *bastionHost
 		}
 
 		if *bastionPort != 0 {
-			config.Bastion.Port = *bastionPort
+			profileInfo.Bastion.Port = *bastionPort
 		}
 		if *bastionLocalPort != 0 {
-			config.Bastion.LocalPort = *bastionLocalPort
+			profileInfo.Bastion.LocalPort = *bastionLocalPort
 		}
 	}
 
