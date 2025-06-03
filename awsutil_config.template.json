@@ -1,0 +1,15 @@
+{
+    "defaultProfile": "<profile>",
+    "profiles": {
+        "spg": {
+            "name": "<profile>",
+            "instance": "<instance ID>",
+            "bastion": {
+                "instance": "<bastion instance ID>",
+                "host": "<bastion host (get from AWS console)>",
+                "port": <db port>,
+                "localPort": <local port>
+            }
+        }
+    }
+}

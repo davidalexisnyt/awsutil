@@ -46,6 +46,8 @@ func main() {
 	exePath, _ := os.Executable()
 	configFile := filepath.Join(filepath.Dir(exePath), "awsutil_config.json")
 
+	os.Args = []string{"awsutil", "bastion", "-p", "spgprd", "-instance", "i-0aa96e31e63380176"}
+
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: awsutil login --profile <aws cli profile>")
 		fmt.Println("       awsutil instances [--profile <aws cli profile>] <filter prefix")
@@ -75,7 +77,7 @@ func main() {
 		saveConfiguration(configFile, &config, os.Args[2:]...)
 		return
 	case "bastion":
-		startBastionTunnel(os.Args[2:], &config)
+		err = startBastionTunnel(os.Args[2:], &config)
 	default:
 		fmt.Printf("Invalid option: %s\n", command)
 		fmt.Println("USAGE: awsutil [login | instances]")
@@ -439,7 +441,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		"ssm",
 		"start-session",
 		"--target",
-		profileInfo.Instance,
+		profileInfo.Bastion.Instance,
 		"--document-name",
 		"AWS-StartPortForwardingSessionToRemoteHost",
 		"--parameters",
@@ -585,7 +587,6 @@ func isLoggedIn(profile string) bool {
 	}
 
 	if err := command.Wait(); err != nil {
-		fmt.Printf("Failed to authenticate %s", err.Error())
 		return false
 	}
 
