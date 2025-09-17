@@ -1,8 +1,8 @@
 {
     "defaultProfile": "<profile>",
     "profiles": {
-        "spg": {
-            "name": "<profile>",
+        "my-aws-profile": {
+            "name": "<profile name>",
             "instance": "<instance ID>",
             "bastion": {
                 "instance": "<bastion instance ID>",

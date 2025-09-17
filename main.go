@@ -46,8 +46,6 @@ func main() {
 	exePath, _ := os.Executable()
 	configFile := filepath.Join(filepath.Dir(exePath), "awsutil_config.json")
 
-	os.Args = []string{"awsutil", "bastion", "-p", "spgprd", "-instance", "i-0aa96e31e63380176"}
-
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: awsutil login --profile <aws cli profile>")
 		fmt.Println("       awsutil instances [--profile <aws cli profile>] <filter prefix")
