@@ -5,15 +5,22 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"time"
 )
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func findAvailableLocalPort(startPort int) (int, error) {
 	for port := startPort; port < startPort+1000; port++ {
-		addr, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-
+		// Try to listen on all interfaces (same as HTTP server will use)
+		// This checks if the port is truly available for binding
+		listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if err == nil {
-			addr.Close()
+			// Port is available - close the listener immediately
+			listener.Close()
+
+			// Small delay to ensure port is fully released (especially on Windows)
+			time.Sleep(10 * time.Millisecond)
+
 			return port, nil
 		}
 	}

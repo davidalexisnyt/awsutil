@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWSUTIL - AWS CLI Automation Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AWSUTIL</h1>
+        </header>
+
+        <main>
+            <p>This is a tool for automating common tasks using the AWS CLI.</p>
+
+            <p>I got tired of typing in long strings of AWS CLI commands and having to remember all the options and parameters. Yes, shell scripts can be created to do things like find instance IDs, start SSM sessions, log in to different environments, etc. But I, and other members of my team, need to flip back and forth between Windows, Linux, and MacOS. Having to maintain scripts for PowerShell, bash, zsh, and who knows what else, is a pain.</p>
+
+            <p>Thus, the <code>awsutil</code> tool was born. The aim is to have the tool minimize the amount of typing, "learn" your most common settings, and generally just help get the job done and get out of the way.</p>
+
+            <h2>Features</h2>
+
+            <ul>
+                <li><strong>AWS SSO Login</strong>: Simplified login with automatic profile management</li>
+                <li><strong>EC2 Instance Discovery</strong>: Quickly find and list EC2 instances by name pattern</li>
+                <li><strong>SSM Terminal Sessions</strong>: One-command terminal access to EC2 instances</li>
+                <li><strong>Bastion Host Management</strong>:
+                    <ul>
+                        <li>Multiple named bastions per AWS profile</li>
+                        <li>Cross-profile bastion lookup by name</li>
+                        <li>List configured bastions</li>
+                        <li>Interactive configuration with automatic RDS and EC2 discovery</li>
+                        <li>Update existing bastion configurations</li>
+                        <li>Port forwarding through bastion hosts</li>
+                        <li>Auto-assignment of local ports</li>
+                    </ul>
+                </li>
+                <li><strong>Help System</strong>: Built-in help for all commands</li>
+                <li><strong>Auto-Configuration</strong>: Automatically saves your most-used settings while you use it</li>
+                <li><strong>Cross-Platform</strong>: Single codebase works on Windows, Linux, and macOS</li>
+            </ul>
+
+            <h2>Prerequisites</h2>
+
+            <p>This tool automates calls to the AWS CLI, so please ensure that the AWS CLI and the SSM plugin are installed and available in your PATH.</p>
+
+            <h2>Installation</h2>
+
+            <p>This tool is written in Go, so can be compiled for Windows, Mac, or Linux. It requires a single executable and its configuration file. The configuration file is automatically created and managed as you use the tool.</p>
+
+            <h3>Step 1: Compile the code</h3>
+
+            <p>First, make sure you have a <a href="https://go.dev/dl">working installation of Go</a> on your machine (I always have the very latest version installed). The code has zero package dependencies, so it will compile without any package installation shenanigans.</p>
+
+            <pre><code class="language-shell">go build -ldflags="-s -w"</code></pre>
+
+            <p>The <code>-ldflags</code> option is not required but is nice, since is tells the compiler to produce an executable that is more optimized and does not have debug symbols. The result is a (much) smaller executable than with a plain <code>go build</code>.</p>
+
+            <p>You should now have an executable (<code>awsutil.exe</code> if you're on Windows, <code>awsutil</code> otherwise).</p>
+
+            <h3>Step 2: Copy/move to a convenient location</h3>
+
+            <p>It's a good practice to have a <code>bin</code> folder in your user home folder that's also in your PATH, but you can put it wherever you'd like. Copy the executable to your chosen location. You're all set!</p>
+
+            <h2>Commands</h2>
+
+            <p>The tool provides the following commands:</p>
+
+            <ul>
+                <li><code>login</code> - Log in to AWS SSO</li>
+                <li><code>instances</code> - List EC2 instances matching a filter</li>
+                <li><code>terminal</code> - Start an SSM terminal session to an EC2 instance</li>
+                <li><code>bastion</code> - Start a port forwarding session through a bastion host</li>
+                <li><code>bastions</code> - Manage bastion hosts (list, add, update)</li>
+                <li><code>configure</code> - Configure default settings. Very rarely needed, since most configuration is done automatically.</li>
+                <li><code>help</code> - Show help information (use <code>awsutil help &lt;command&gt;</code> for detailed help)</li>
+                <li><code>docs</code> - Displays the application documentation (contained in README.md) to the terminal. The markdown is converted and rendered to look beautiful in the terminal.</li>
+            </ul>
+
+            <p>For detailed help on any command, use:</p>
+
+            <pre><code class="language-shell">awsutil help &lt;command&gt;</code></pre>
+
+            <h2>Usage</h2>
+
+            <h3>Logging in to AWS</h3>
+
+            <p>Let's say we have profiles called <code>dev</code> and <code>prod</code>, we log in using the <code>dev</code> profile with the AWS CLI like this:</p>
+
+            <pre><code class="language-shell">aws sso login --profile dev</code></pre>
+
+            <p>We can do the same thing with <code>awsutil</code>:</p>
+
+            <pre><code class="language-shell">awsutil login -p dev</code></pre>
+
+            <p>But nothing is gained by using <code>awsutil</code> like this, so let's simplify things by automatically taking care of some housekeeping under the hood.</p>
+
+            <ul>
+                <li>Once a profile is used with a command, it becomes the default for further commands. e.g. If we login using the dev profile (<code>awsutil login -p dev</code>), the <code>dev</code> profile becomes the default for other commands like <code>awsutil instances</code> or even when you need to login again later, <code>awsutil login</code> will log in using the <code>dev</code> profile since it was the last one we used.</li>
+                <li>There is no need to log in before using another command. <code>awsutil</code> will see that we're not currently logged in and will perform the login process before the command that was run. e.g. Let's say we run <code>awsutil instances myapp</code> without first running <code>awsutil login</code>, we'll first see the AWS login page get launched. Once authentication is done, the <code>instances</code> command will be run, listing any existing instances with names starting with "myapp" (we'll go deeper into the <code>instances</code> command later).</li>
+                <li>Heck, we don't even need to ever run the <code>awsutil login</code> command if we don't want to, since ... see the previous bullet point.</li>
+            </ul>
+
+            <h3>Get a list if EC2 instances</h3>
+
+            <p>To get a filtered list of EC2 instances, e.g. anything starting with the word "example", we would normally need to run a complex AWS CLI query command like this:</p>
+
+            <pre><code class="language-shell">aws --profile dev ec2 describe-instances \
+    --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" \
+    --filters 'Name=tag:Name,Values=example*' \
+    --output=table</code></pre>
+
+            <p>There's no way that anyone will remember this. So let's simplify the process with awsutil:</p>
+
+            <pre><code class="language-shell">awsutil instances --profile dev example</code></pre>
+
+            <p>But wait... <code>dev</code> was already set as our default profile from our previous commands, so we can just use:</p>
+
+            <pre><code class="language-shell">awsutil instances example</code></pre>
+
+            <p>This will print out something like this:</p>
+
+            <pre><code>Instances
+    example-app-stg-asg: i-0c15ff251abee847f
+    ...</code></pre>
+
+            <p>We're going to work quite a bit with the <code>i-0c15ff251abee847f</code> instance, so let's set it as our default. We could use the <code>awsutil configure --instance i-0c15ff251abee847f</code> command, but why? The overriding theme of <code>awsutil</code> is automatically making our lives easier. In this case, the <code>instances</code> command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the <code>terminal</code> command we'll talk about next).</p>
+
+            <p>However, if our <code>instances</code> query returns more than one EC2 instance, we'll need to specify the instance ID (just once) when we want to connect to it.</p>
+
+            <blockquote>
+                <p><strong>NOTE:</strong> You should notice a new file called <code>awsutil_config.json</code> in the same location as the <code>awsutil</code> executable after running the commands we've gone over so far. Take a look at the file if you're curious to see how <code>awsutil</code> keeps track of things.</p>
+            </blockquote>
+
+            <h3>Launching an SSM terminal session</h3>
+
+            <p>We would normally create an SSM session with the AWS CLI like this:</p>
+
+            <pre><code class="language-shell">aws sso login --profile dev
+aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
+
+            <p>Not as bad as the instance query command, but still too complicated. We have better things to do with our time. With <code>awsutil</code>, we would do the same thing like this:</p>
+
+            <pre><code class="language-shell">awsutil terminal</code></pre>
+
+            <p>Remember the <code>awsutil instances</code> command we ran before that returned just one matching instance? The instance information was automatically saved as our default, so the <code>awsutil terminal</code> command just knows to connect to it.</p>
+
+            <p>There are situations where we might need to specify the instance ID and/or the profile ID with the <code>terminal</code> command:</p>
+
+            <ul>
+                <li>The last <code>instances</code> query we ran returned a list of more than one instance. <code>awsutil</code> can't know which one you would want to use, to it does not perform any automatic configuration. In this case, we will need to use <code>awsutil terminal &lt;instance id&gt;</code> to connect to the instance we want. NOW, the instance will get automatically saved as our default going forward.</li>
+                <li>The last commands we used were against the <code>dev</code> instance, but now we want to connect to an instance under the <code>prod</code> profile. In this case, we need to specify both the instance ID and the profile: <code>awsutil terminal -p prod &lt;instance id&gt;</code>. <code>awsutil</code> will automatically save the specified instance ID as the default... for the prod profile. So if we already have a default instance for our dev profile, we still just need to run <code>awsutil terminal -p dev</code> to connect to the last dev instance we used.</li>
+            </ul>
+
+            <p>Again, the theme with <code>awsutil</code> is to remember the context of what we were doing so it can save us time and effort.</p>
+
+            <h3>Database Bastions</h3>
+
+            <p>Getting connected to AWS databases through bastion jump hosts can be a messy pain.</p>
+
+            <ul>
+                <li>We need to log into the AWS Console web app to gather a bunch of required information that is scattered across a number of different services:
+                    <ul>
+                        <li>Bastion Host Instance ID - the EC2 instance set up to act as our jump host to connect to database resources.</li>
+                        <li>Database Host - The instance name of the database host we want to connect to. Except it's not the usual instance name property, but a super long, internal DNS name for the database instance.</li>
+                        <li>Databast Host Port - The TCP port for connecting to the database. e.g. Postgres is usually 5432, but can be different.</li>
+                        <li>Local Port - This one is easy. It's the port we want our tunnel to use with database drivers in our apps or code to connect to the database. We connect to this port on localhost and the tunnel forwards the traffic to the real database host and port through the EC2 bastion jump host.</li>
+                    </ul>
+                </li>
+                <li>We then need to use the AWS CLI to log in to the environment.</li>
+                <li>Finally, we use the AWS CLI's <code>ssm</code> command with a lengthy set of arguments.</li>
+            </ul>
+
+            <p>This is simplified greatly with <code>awstuil</code>, as we'll see in a bit.</p>
+
+            <p>The <code>awsutil</code> bastion functionality supports multiple named bastion tunnels per AWS profile, making it easy to manage connections to different database services. This is handy for when there are different target databases you would like to access for different applications, even when the environment has a single bastion jump host.</p>
+
+            <h4>Listing Configured Bastions</h4>
+
+            <p>To view all configured bastions across all profiles:</p>
+
+            <pre><code class="language-shell">awsutil bastions list</code></pre>
+
+            <p>Or simply:</p>
+
+            <pre><code class="language-shell">awsutil bastions</code></pre>
+
+            <p>To filter by a specific profile:</p>
+
+            <pre><code class="language-shell">awsutil bastions list -p &lt;profile&gt;</code></pre>
+
+            <p>This will display all configured bastions, showing:</p>
+
+            <ul>
+                <li>Name (with default marker if applicable)</li>
+                <li>ID (unique identifier for the bastion)</li>
+                <li>Profile (AWS profile the bastion belongs to)</li>
+                <li>Instance ID</li>
+                <li>Host</li>
+                <li>Port</li>
+                <li>Local Port</li>
+            </ul>
+
+            <p>If we have not configured any bastions yet, the <code>bastions list</code> results will be a bit boring (i.e. empty). So let's fix that.</p>
+
+            <h4>Bastion Configuration</h4>
+
+            <p><strong>Adding a New Bastion</strong></p>
+
+            <p>New bastions are added using the interactive <code>bastions add</code> command.</p>
+
+            <pre><code class="language-shell">awsutil bastions add -p &lt;profile&gt;</code></pre>
+
+            <p>This command will do all the heavy lifting of running multiple AWS commands to gather the information we need to configure our tunnel.</p>
+
+            <ol>
+                <li>If we're not already logged in to the specified profile, <code>awsutil</code> will first go through the AWS authentication steps.</li>
+                <li>It runs AWS commands to query for available database instances, then displays the list to us, asking us to select the one we're interested in. The endpoint name and port for the server are saved automatically.</li>
+                <li>It then runs AWS commands to get a list of available EC2 bastion jump hosts, and presents us with the list so we can pick the appropriate one.</li>
+                <li>It asks us for a name for our new bastion tunnel configuration.</li>
+                <li>Finally, we are prompted for the local port we'd like to use. It tries to find the first open port on our machine from port 7000 or above and offers that as the default, which we can override with our own choice.</li>
+            </ol>
+
+            <p>Done. A new, named bastion configuration is saved under the speficied profile for us to use going forwared.</p>
+
+            <p>Now, if we run the <code>awsutils bastions list</code> command, we'll see our new bastion in the list.</p>
+
+            <p><strong>Updating an Existing Bastion</strong></p>
+
+            <p>To update an existing bastion configuration, use the <code>bastions update</code> command:</p>
+
+            <pre><code class="language-shell">awsutil bastions update -p &lt;profile&gt; --name &lt;bastion-name&gt;</code></pre>
+
+            <p>Or simply:</p>
+
+            <pre><code class="language-shell">awsutil bastions update -p &lt;profile&gt;</code></pre>
+
+            <p>This will prompt you for the bastion name if not provided, then guide you through the same interactive process as adding a new bastion. The bastion's ID and profile association are preserved during updates.</p>
+
+            <h4>Starting a Bastion Session</h4>
+
+            <p>Once configured, starting a bastion session is simple:</p>
+
+            <pre><code class="language-shell">awsutil bastion</code></pre>
+
+            <p>This will use the default bastion on the default AWS profile. You can also specify the profile using the <code>-p</code> option:</p>
+
+            <pre><code class="language-shell">awsutil bastion -p &lt;profile&gt;</code></pre>
+
+            <p>This will start the default bastion under the specified profile.</p>
+
+            <p>Or we can get really specific and provide both the profile and the name:</p>
+
+            <pre><code class="language-shell">awsutil bastion -p &lt;profile&gt; --name mybastion</code></pre>
+
+            <p><strong>Finding Bastions by Name Across Profiles</strong></p>
+
+            <p>If you have multiple bastions configured across different profiles and we use names that are unique across, you can specify the one to use with the <code>--name</code> option:</p>
+
+            <pre><code class="language-shell">awsutil bastion --name my-prod-db</code></pre>
+
+            <p>When using <code>--name</code> without specifying a profile:</p>
+
+            <ul>
+                <li>The tool first searches for the bastion in the default profile</li>
+                <li>If it does not find one, it searches all other profiles</li>
+                <li>Once it finds a bastion with the supplied name, it uses the bastion's associated profile to launch the session</li>
+            </ul>
+
+            <p>If you specify both <code>--name</code> and <code>-p</code> (or <code>--profile</code>), the tool will only search for the bastion in the specified profile:</p>
+
+            <pre><code class="language-shell">awsutil bastion -p dev --name my-db</code></pre>
+
+            <p>These options give us the flexibility to use <code>awsutil</code> in a way that matches our personal approach.</p>
+
+            <h3>What if our authentication session has expired?</h3>
+
+            <p>If we try to issue an AWS CLI command without first logging in, or after our session has expired, we would get a rude response. We would then need to log in and re-attempt our previous command. This is simplified with <code>awsutil</code>. If is detects that we don't have a valid authentication session, it will log in with our default profile before executing the command.</p>
+
+            <p>So using:</p>
+
+            <pre><code>awsutil terminal</code></pre>
+
+            <p>is the same as doing:</p>
+
+            <pre><code class="language-shell">awsutil login
+awsutil terminal</code></pre>
+
+            <h3>More Automatic Configuration Examples</h3>
+
+            <p>What if you want to start an SSM session to an instance you already know and this is the first time you're using <code>awsutil</code>? We can kill two proverbial birds with one stone:</p>
+
+            <pre><code class="language-shell">awsutil terminal --profile dev i-0c15ff251abee847f</code></pre>
+
+            <p>The profile and instance ID will automatically get saved, an SSO authentication session will be created, and you will be connected to the instance via an SSM terminal session. Then you'd simply use <code>awsutil terminal</code> to log in to the instance again later.</p>
+
+            <p>Let's simplify even further. If the filter we supply for the <code>awsutil instances</code> command results in just one instance being returned, <code>awsutil</code> will save that instance ID as your default. Let's try it. First, delete the <code>awsutil_config.json</code> file so we're sure we have no defaults saved. Then issue do something like this, where the <em>filter</em> parameter ensures that we get just one instance back:</p>
+
+            <pre><code class="language-shell">awsutil instances --profile spg very-specific-prefix
+awsutil terminal</code></pre>
+
+            <p>Both the profile and the resultant instance ID from the 1st command will be remembered for further commands.</p>
+
+            <h2>Getting Help</h2>
+
+            <p>The tool includes a comprehensive help system. To see all available commands:</p>
+
+            <pre><code class="language-shell">awsutil help</code></pre>
+
+            <p>For detailed help on a specific command:</p>
+
+            <pre><code class="language-shell">awsutil help bastion
+awsutil help bastions
+awsutil help bastions list
+awsutil help bastions add
+awsutil help bastions update
+awsutil help terminal
+# etc.</code></pre>
+
+            <p>In addition to these help topics, <code>awsutil</code> also displays the full documentation (this file):</p>
+
+            <pre><code class="language-shell">awsutil docs</code></pre>
+
+            <h2>Configuration File Format</h2>
+
+            <p>The configuration file (<code>awsutil_config.json</code>) is stored in the same directory as the executable. It supports:</p>
+
+            <ul>
+                <li><strong>Default Profile</strong>: The AWS CLI profile to use by default</li>
+                <li><strong>Per-Profile Settings</strong>:
+                    <ul>
+                        <li>Default EC2 instance ID</li>
+                        <li>Multiple named bastions</li>
+                        <li>Default bastion name</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p>Example configuration:</p>
+
+            <pre><code class="language-json">{
+  "defaultProfile": "dev",
+  "profiles": {
+    "dev": {
+      "name": "dev",
+      "instance": "i-0c15ff251abee847f",
+      "bastions": {
+        "production-db": {
+          "id": "a1b2c3d4e5f6g7h8",
+          "name": "production-db",
+          "profile": "dev",
+          "instance": "i-1234567890abcdef0",
+          "host": "prod-db.example.com",
+          "port": 5432,
+          "localPort": 7000
+        }
+      },
+      "defaultBastion": "production-db"
+    },
+    "prod": {
+      "name": "prod",
+      "instance": "i-0987654321fedcba0",
+      "bastions": {
+        "prod-db": {
+          "id": "h8g7f6e5d4c3b2a1",
+          "name": "prod-db",
+          "profile": "prod",
+          "instance": "i-abcdef1234567890",
+          "host": "prod-db.example.com",
+          "port": 5432,
+          "localPort": 7001
+        }
+      },
+      "defaultBastion": "prod-db"
+    }
+  },
+  "bastionLookup": {
+    "a1b2c3d4e5f6g7h8": {
+      "profile": "dev",
+      "name": "production-db"
+    },
+    "h8g7f6e5d4c3b2a1": {
+      "profile": "prod",
+      "name": "prod-db"
+    }
+  }
+}</code></pre>
+        </main>
+    </div>
+</body>
+</html>
+

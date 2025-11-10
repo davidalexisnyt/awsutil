@@ -1,9 +1,16 @@
 package main
 
 import (
-	"awsutil/markdown"
-	"fmt"
+	"context"
 	_ "embed"
+	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
 )
 
 //go:embed help/general.txt
@@ -36,12 +43,79 @@ var helpDocs string
 //go:embed help/unknown.txt
 var helpUnknown string
 
-//go:embed README.md
-var readmeContent string
+//go:embed docs/index.html
+var docsHTML string
+
+//go:embed docs/styles.css
+var docsCSS string
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func showDocs() {
-	markdown.RenderMarkdown(readmeContent)
+	// Create HTTP handler
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/styles.css" {
+			w.Header().Set("Content-Type", "text/css")
+			fmt.Fprint(w, docsCSS)
+		} else {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			fmt.Fprint(w, docsHTML)
+		}
+	})
+
+	// Start server on localhost
+	port, err := findAvailableLocalPort(8080)
+	if err != nil {
+		fmt.Printf("Error finding available local port: %v\n", err)
+		os.Exit(1)
+	}
+
+	url := fmt.Sprintf("http://localhost:%d", port)
+
+	fmt.Printf("Starting documentation server on http://localhost:%d...\n", port)
+	fmt.Println("Press Ctrl+C to stop the documentation server.")
+
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	// Open browser
+	go openBrowser(url)
+
+	// Start HTTP server in a goroutine
+	server := &http.Server{Addr: fmt.Sprintf(":%d", port)}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Error starting documentation server: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-sigChan
+	fmt.Println("\nShutting down documentation server...")
+
+	// Gracefully shutdown the server
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		fmt.Printf("Documentation server shutdown error: %v\n", err)
+	}
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func openBrowser(url string) {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("cmd", "/c", "start", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	default: // linux and others
+		cmd = exec.Command("xdg-open", url)
+	}
+
+	cmd.Run()
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -78,4 +152,3 @@ func showHelp(command string) {
 		fmt.Printf(helpUnknown, command)
 	}
 }
-
