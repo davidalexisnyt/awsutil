@@ -8,7 +8,7 @@ COMMANDS:
     instances   List EC2 instances matching a filter
     terminal    Start an SSM terminal session to an EC2 instance
     bastion     Start a port forwarding session through a bastion host
-    bastions    List and configure bastion hosts
+    bastions    Manage bastion hosts (list, add, update)
     configure   Configure default settings
     docs        Display the full documentation (README.md)
     help        Show help information

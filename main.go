@@ -14,7 +14,9 @@ package main
 import (
 	"awsutil/markdown"
 	"bufio"
+	"crypto/rand"
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -61,8 +63,14 @@ var helpUnknown string
 var readmeContent string
 
 type Configuration struct {
-	DefaultProfile string             `json:"defaultProfile,omitempty"`
-	Profiles       map[string]Profile `json:"profiles,omitempty"`
+	DefaultProfile string                   `json:"defaultProfile,omitempty"`
+	Profiles       map[string]Profile       `json:"profiles,omitempty"`
+	BastionLookup  map[string]BastionLookup `json:"bastionLookup,omitempty"` // Map of bastion ID to profile and name
+}
+
+type BastionLookup struct {
+	Profile string `json:"profile,omitempty"`
+	Name    string `json:"name,omitempty"`
 }
 
 type Profile struct {
@@ -74,7 +82,9 @@ type Profile struct {
 }
 
 type Bastion struct {
+	ID        string `json:"id,omitempty"`
 	Name      string `json:"name,omitempty"`
+	Profile   string `json:"profile,omitempty"`
 	Instance  string `json:"instance,omitempty"`
 	Host      string `json:"host,omitempty"`
 	Port      int    `json:"port,omitempty"`
@@ -132,7 +142,24 @@ func main() {
 	case "bastion":
 		err = startBastionTunnel(os.Args[2:], &config)
 	case "bastions":
-		err = listBastions(os.Args[2:], &config)
+		if len(os.Args) < 3 {
+			// Default to 'list' if no subcommand provided
+			err = listBastions(os.Args[2:], &config)
+		} else {
+			subcommand := strings.ToLower(os.Args[2])
+			switch subcommand {
+			case "list":
+				err = listBastions(os.Args[3:], &config)
+			case "add":
+				err = addBastion(os.Args[3:], &config)
+			case "update":
+				err = updateBastion(os.Args[3:], &config)
+			default:
+				fmt.Printf("Invalid bastions subcommand: %s\n", subcommand)
+				fmt.Println("Use 'awsutil bastions list' to list bastions, 'awsutil bastions add' to add a new bastion, or 'awsutil bastions update' to update an existing bastion.")
+				os.Exit(1)
+			}
+		}
 	case "docs":
 		showDocs()
 		return
@@ -174,6 +201,10 @@ func showHelp(command string) {
 	case "bastion":
 		fmt.Print(helpBastion)
 	case "bastions":
+		fmt.Print(helpBastions)
+	case "bastions list":
+		fmt.Print(helpBastions)
+	case "bastions add":
 		fmt.Print(helpBastions)
 	case "configure":
 		fmt.Print(helpConfigure)
@@ -371,6 +402,7 @@ func listInstances(args []string, config *Configuration) error {
 	return nil
 }
 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func ensureProfile(config *Configuration, profile *string, profileShort *string) (string, error) {
 	// Initialize Profiles map if nil
 	if config.Profiles == nil {
@@ -487,11 +519,74 @@ func startSSMSession(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listBastions(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastions", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastions list", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil bastions [--profile <aws cli profile>]")
+		fmt.Println("USAGE:\n    awsutil bastions list [--profile <aws cli profile>]")
+	}
+
+	if err := flagSet.Parse(args); err != nil {
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
+	}
+
+	// List all bastions across all profiles
+	if config.Profiles == nil {
+		fmt.Println("\nNo bastions configured.")
+		return nil
+	}
+
+	hasBastions := false
+	for profileName, profileInfo := range config.Profiles {
+		// If profile filter is specified, only show that profile
+		if *profile != "" || *profileShort != "" {
+			targetProfile := *profile
+			if *profileShort != "" {
+				targetProfile = *profileShort
+			}
+			if profileName != targetProfile {
+				continue
+			}
+		}
+
+		if profileInfo.Bastions != nil && len(profileInfo.Bastions) > 0 {
+			hasBastions = true
+			fmt.Printf("\nBastions for profile '%s':\n", profileName)
+			for name, bastion := range profileInfo.Bastions {
+				defaultMarker := ""
+				if profileInfo.DefaultBastion == name {
+					defaultMarker = " (default)"
+				}
+				fmt.Printf("\n  Name:       %s%s\n", name, defaultMarker)
+				if bastion.ID != "" {
+					fmt.Printf("  ID:         %s\n", bastion.ID)
+				}
+				fmt.Printf("  Profile:    %s\n", bastion.Profile)
+				fmt.Printf("  Instance:   %s\n", bastion.Instance)
+				fmt.Printf("  Host:       %s\n", bastion.Host)
+				fmt.Printf("  Port:       %d\n", bastion.Port)
+				fmt.Printf("  Local Port: %d\n", bastion.LocalPort)
+			}
+		}
+	}
+
+	if !hasBastions {
+		fmt.Println("\nNo bastions configured.")
+	} else {
+		fmt.Println()
+	}
+
+	return nil
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func addBastion(args []string, config *Configuration) error {
+	flagSet := flag.NewFlagSet("bastions add", flag.ExitOnError)
+	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
+	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:\n    awsutil bastions add [--profile <aws cli profile>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -517,32 +612,7 @@ func listBastions(args []string, config *Configuration) error {
 		profileInfo.Bastions = make(map[string]Bastion)
 	}
 
-	// List existing bastions
-	fmt.Printf("\nBastions for profile '%s':\n", currentProfile)
-	if len(profileInfo.Bastions) == 0 {
-		fmt.Println("  No bastions configured.")
-	} else {
-		fmt.Printf("%-20s %-20s %-50s %-8s %-12s\n", "Name", "Instance ID", "Host", "Port", "Local Port")
-		fmt.Println(strings.Repeat("-", 112))
-		for name, bastion := range profileInfo.Bastions {
-			defaultMarker := ""
-			if profileInfo.DefaultBastion == name {
-				defaultMarker = " (default)"
-			}
-			fmt.Printf("%-20s %-20s %-50s %-8d %-12d%s\n",
-				name, bastion.Instance, bastion.Host, bastion.Port, bastion.LocalPort, defaultMarker)
-		}
-	}
-
-	// Interactive configuration
-	fmt.Println("\nWould you like to configure a new bastion? (y/n): ")
 	reader := bufio.NewReader(os.Stdin)
-	response, _ := reader.ReadString('\n')
-	response = strings.TrimSpace(strings.ToLower(response))
-
-	if response != "y" && response != "yes" {
-		return nil
-	}
 
 	// Query RDS databases
 	fmt.Println("\nQuerying RDS databases...")
@@ -553,25 +623,26 @@ func listBastions(args []string, config *Configuration) error {
 
 	if len(databases) == 0 {
 		fmt.Println("No RDS databases found.")
-		return nil
-	}
-
-	// Display databases and let user select
-	fmt.Println("\nAvailable RDS databases:")
-	for i, db := range databases {
-		fmt.Printf("  %d. %s (%s) - %s:%d\n", i+1, db.DBInstanceIdentifier, db.Engine, db.Endpoint, db.Port)
-	}
-
-	fmt.Print("\nSelect database number (or 0 to skip): ")
-	dbSelection, _ := reader.ReadString('\n')
-	dbIndex, err := strconv.Atoi(strings.TrimSpace(dbSelection))
-	if err != nil || dbIndex < 0 || dbIndex > len(databases) {
-		return fmt.Errorf("invalid selection")
+	} else {
+		// Display databases and let user select
+		fmt.Println("\nAvailable RDS databases:")
+		for i, db := range databases {
+			fmt.Printf("  %d. %s (%s) - %s:%d\n", i+1, db.DBInstanceIdentifier, db.Engine, db.Endpoint, db.Port)
+		}
 	}
 
 	var selectedDB *RDSDatabase
-	if dbIndex > 0 {
-		selectedDB = &databases[dbIndex-1]
+	if len(databases) > 0 {
+		fmt.Print("\nSelect database number (or 0 to skip): ")
+		dbSelection, _ := reader.ReadString('\n')
+		dbIndex, err := strconv.Atoi(strings.TrimSpace(dbSelection))
+		if err != nil || dbIndex < 0 || dbIndex > len(databases) {
+			return fmt.Errorf("invalid selection")
+		}
+
+		if dbIndex > 0 {
+			selectedDB = &databases[dbIndex-1]
+		}
 	}
 
 	// Query bastion instances
@@ -582,8 +653,7 @@ func listBastions(args []string, config *Configuration) error {
 	}
 
 	if len(bastionInstances) == 0 {
-		fmt.Println("No bastion instances found.")
-		return nil
+		return fmt.Errorf("no bastion instances found")
 	}
 
 	// Display bastion instances and let user select
@@ -614,9 +684,17 @@ func listBastions(args []string, config *Configuration) error {
 		}
 	}
 
+	// Generate unique ID for the bastion
+	bastionID, err := generateBastionID()
+	if err != nil {
+		return fmt.Errorf("failed to generate bastion ID: %v", err)
+	}
+
 	// Create bastion configuration
 	newBastion := Bastion{
+		ID:       bastionID,
 		Name:     bastionName,
+		Profile:  currentProfile,
 		Instance: selectedBastionInstance.Instance,
 	}
 
@@ -665,7 +743,204 @@ func listBastions(args []string, config *Configuration) error {
 	profileInfo.Name = currentProfile
 	config.Profiles[currentProfile] = profileInfo
 
-	fmt.Printf("\nBastion '%s' configured successfully!\n", bastionName)
+	// Update ID lookup map
+	if config.BastionLookup == nil {
+		config.BastionLookup = make(map[string]BastionLookup)
+	}
+	config.BastionLookup[bastionID] = BastionLookup{
+		Profile: currentProfile,
+		Name:    bastionName,
+	}
+
+	fmt.Printf("\nBastion '%s' (ID: %s) configured successfully!\n", bastionName, bastionID)
+
+	return nil
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func updateBastion(args []string, config *Configuration) error {
+	flagSet := flag.NewFlagSet("bastions update", flag.ExitOnError)
+	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
+	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	bastionName := flagSet.String("name", "", "--name <bastion name>")
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:\n    awsutil bastions update [--profile <aws cli profile>] [--name <bastion name>]")
+	}
+
+	if err := flagSet.Parse(args); err != nil {
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
+	}
+
+	currentProfile, err := ensureProfile(config, profile, profileShort)
+	if err != nil {
+		return err
+	}
+
+	// Ensure that we're logged in before running the command
+	if !isLoggedIn(currentProfile) {
+		loginArgs := []string{"--profile", currentProfile}
+		if err := login(loginArgs, config); err != nil {
+			return err
+		}
+	}
+
+	profileInfo := config.Profiles[currentProfile]
+	if profileInfo.Bastions == nil {
+		profileInfo.Bastions = make(map[string]Bastion)
+	}
+
+	// Get bastion name
+	var targetBastionName string
+	if *bastionName != "" {
+		targetBastionName = *bastionName
+	} else {
+		// Prompt for bastion name
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter bastion name to update: ")
+		nameInput, _ := reader.ReadString('\n')
+		targetBastionName = strings.TrimSpace(nameInput)
+		if targetBastionName == "" {
+			return fmt.Errorf("bastion name is required")
+		}
+	}
+
+	// Check if bastion exists
+	existingBastion, exists := profileInfo.Bastions[targetBastionName]
+	if !exists {
+		return fmt.Errorf("bastion '%s' not found in profile '%s'", targetBastionName, currentProfile)
+	}
+
+	// Preserve ID and Profile
+	existingBastionID := existingBastion.ID
+	if existingBastionID == "" {
+		// Generate ID if missing
+		newID, err := generateBastionID()
+		if err != nil {
+			return fmt.Errorf("failed to generate bastion ID: %v", err)
+		}
+		existingBastionID = newID
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	// Query RDS databases
+	fmt.Println("\nQuerying RDS databases...")
+	databases, err := queryRDSDatabases(currentProfile)
+	if err != nil {
+		return fmt.Errorf("failed to query RDS databases: %v", err)
+	}
+
+	if len(databases) == 0 {
+		fmt.Println("No RDS databases found.")
+	} else {
+		// Display databases and let user select
+		fmt.Println("\nAvailable RDS databases:")
+		for i, db := range databases {
+			fmt.Printf("  %d. %s (%s) - %s:%d\n", i+1, db.DBInstanceIdentifier, db.Engine, db.Endpoint, db.Port)
+		}
+	}
+
+	var selectedDB *RDSDatabase
+	if len(databases) > 0 {
+		fmt.Print("\nSelect database number (or 0 to skip): ")
+		dbSelection, _ := reader.ReadString('\n')
+		dbIndex, err := strconv.Atoi(strings.TrimSpace(dbSelection))
+		if err != nil || dbIndex < 0 || dbIndex > len(databases) {
+			return fmt.Errorf("invalid selection")
+		}
+
+		if dbIndex > 0 {
+			selectedDB = &databases[dbIndex-1]
+		}
+	}
+
+	// Query bastion instances
+	fmt.Println("\nQuerying bastion instances...")
+	bastionInstances, err := queryBastionInstances(currentProfile)
+	if err != nil {
+		return fmt.Errorf("failed to query bastion instances: %v", err)
+	}
+
+	if len(bastionInstances) == 0 {
+		return fmt.Errorf("no bastion instances found")
+	}
+
+	// Display bastion instances and let user select
+	fmt.Println("\nAvailable bastion instances:")
+	for i, inst := range bastionInstances {
+		fmt.Printf("  %d. %s (%s)\n", i+1, inst.Name, inst.Instance)
+	}
+
+	fmt.Print("\nSelect bastion instance number: ")
+	instSelection, _ := reader.ReadString('\n')
+	instIndex, err := strconv.Atoi(strings.TrimSpace(instSelection))
+	if err != nil || instIndex < 1 || instIndex > len(bastionInstances) {
+		return fmt.Errorf("invalid selection")
+	}
+
+	selectedBastionInstance := bastionInstances[instIndex-1]
+
+	// Update bastion configuration
+	updatedBastion := Bastion{
+		ID:       existingBastionID,
+		Name:     targetBastionName,
+		Profile:  currentProfile,
+		Instance: selectedBastionInstance.Instance,
+	}
+
+	if selectedDB != nil {
+		updatedBastion.Host = selectedDB.Endpoint
+		updatedBastion.Port = selectedDB.Port
+	} else {
+		// Prompt for host and port
+		fmt.Print("Enter remote host: ")
+		host, _ := reader.ReadString('\n')
+		updatedBastion.Host = strings.TrimSpace(host)
+
+		fmt.Print("Enter remote port: ")
+		portStr, _ := reader.ReadString('\n')
+		port, err := strconv.Atoi(strings.TrimSpace(portStr))
+		if err != nil {
+			return fmt.Errorf("invalid port: %v", err)
+		}
+		updatedBastion.Port = port
+	}
+
+	// Find available local port
+	localPort, err := findAvailableLocalPort(7000)
+	if err != nil {
+		return fmt.Errorf("failed to find available local port: %v", err)
+	}
+
+	fmt.Printf("Using local port: %d\n", localPort)
+	fmt.Print("Enter local port (or press Enter to use suggested): ")
+	localPortStr, _ := reader.ReadString('\n')
+	localPortStr = strings.TrimSpace(localPortStr)
+	if localPortStr != "" {
+		customPort, err := strconv.Atoi(localPortStr)
+		if err == nil {
+			localPort = customPort
+		}
+	}
+
+	updatedBastion.LocalPort = localPort
+
+	// Save to configuration
+	profileInfo.Bastions[targetBastionName] = updatedBastion
+	profileInfo.Name = currentProfile
+	config.Profiles[currentProfile] = profileInfo
+
+	// Update ID lookup map
+	if config.BastionLookup == nil {
+		config.BastionLookup = make(map[string]BastionLookup)
+	}
+	config.BastionLookup[existingBastionID] = BastionLookup{
+		Profile: currentProfile,
+		Name:    targetBastionName,
+	}
+
+	fmt.Printf("\nBastion '%s' (ID: %s) updated successfully!\n", targetBastionName, existingBastionID)
 
 	return nil
 }
@@ -691,22 +966,94 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	currentProfile, err := ensureProfile(config, profile, profileShort)
-	if err != nil {
-		return err
-	}
-
-	profileInfo := config.Profiles[currentProfile]
-	if profileInfo.Bastions == nil {
-		profileInfo.Bastions = make(map[string]Bastion)
-	}
-
-	// Try to get bastion from saved configuration
+	// Handle bastion name lookup logic
 	var bastion Bastion
-	if *bastionName != "" || len(profileInfo.Bastions) > 0 {
-		selectedBastion, err := selectBastionByName(profileInfo, *bastionName)
-		if err == nil {
+	var currentProfile string
+	var err error
+
+	if *bastionName != "" {
+		// If profile is specified, look only in that profile
+		if *profile != "" || *profileShort != "" {
+			currentProfile, err = ensureProfile(config, profile, profileShort)
+			if err != nil {
+				return err
+			}
+
+			profileInfo := config.Profiles[currentProfile]
+			if profileInfo.Bastions == nil {
+				profileInfo.Bastions = make(map[string]Bastion)
+			}
+
+			selectedBastion, err := selectBastionByName(profileInfo, *bastionName)
+			if err != nil {
+				return fmt.Errorf("bastion '%s' not found in profile '%s'", *bastionName, currentProfile)
+			}
 			bastion = selectedBastion
+		} else {
+			// No profile specified - first check default profile, then search all profiles
+			if config.DefaultProfile != "" {
+				// Try default profile first
+				if profileInfo, exists := config.Profiles[config.DefaultProfile]; exists {
+					if profileInfo.Bastions != nil {
+						if selectedBastion, err := selectBastionByName(profileInfo, *bastionName); err == nil {
+							bastion = selectedBastion
+							currentProfile = config.DefaultProfile
+						}
+					}
+				}
+			}
+
+			// If not found in default profile, search all profiles (skip default if already checked)
+			if bastion.Instance == "" {
+				found := false
+				if config.Profiles != nil {
+					for profileName, profileInfo := range config.Profiles {
+						// Skip default profile if we already checked it
+						if profileName == config.DefaultProfile {
+							continue
+						}
+						if profileInfo.Bastions != nil {
+							if selectedBastion, err := selectBastionByName(profileInfo, *bastionName); err == nil {
+								bastion = selectedBastion
+								// Ensure Profile field is set
+								if bastion.Profile == "" {
+									bastion.Profile = profileName
+								}
+								currentProfile = profileName
+								found = true
+								break
+							}
+						}
+					}
+				}
+				if !found {
+					return fmt.Errorf("bastion '%s' not found in any profile", *bastionName)
+				}
+			} else {
+				// Ensure Profile field is set when found in default profile
+				if bastion.Profile == "" {
+					bastion.Profile = currentProfile
+				}
+			}
+		}
+	} else {
+		// No name specified - use existing logic
+		currentProfile, err = ensureProfile(config, profile, profileShort)
+		if err != nil {
+			return err
+		}
+
+		profileInfo := config.Profiles[currentProfile]
+		if profileInfo.Bastions == nil {
+			profileInfo.Bastions = make(map[string]Bastion)
+		}
+
+		// Try to get bastion from saved configuration
+		if len(profileInfo.Bastions) > 0 {
+			selectedBastion, err := selectBastionByName(profileInfo, "")
+			if err == nil {
+				bastion = selectedBastion
+			}
 		}
 	}
 
@@ -766,16 +1113,22 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		fmt.Sprintf(`host="%s",portNumber="%d",localPortNumber="%d"`, bastion.Host, bastion.Port, bastion.LocalPort),
 	}
 
-	if len(currentProfile) != 0 {
-		commandArgs = append(commandArgs, "--profile", currentProfile)
+	// Use profile from bastion if available, otherwise use currentProfile
+	bastionProfile := currentProfile
+	if bastion.Profile != "" {
+		bastionProfile = bastion.Profile
+	}
+
+	if len(bastionProfile) != 0 {
+		commandArgs = append(commandArgs, "--profile", bastionProfile)
 	}
 
 	// Ensure that we're logged in before running the command
-	if !isLoggedIn(currentProfile) {
+	if !isLoggedIn(bastionProfile) {
 		args := []string{}
 
-		if len(currentProfile) != 0 {
-			args = append(args, "--profile", currentProfile)
+		if len(bastionProfile) != 0 {
+			args = append(args, "--profile", bastionProfile)
 		}
 
 		login(args, config)
@@ -986,6 +1339,15 @@ func selectBastionByName(profileInfo Profile, name string) (Bastion, error) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func generateBastionID() (string, error) {
+	bytes := make([]byte, 8)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func loadConfiguration(fileName string) (Configuration, error) {
 	if _, err := os.Stat(fileName); err != nil {
 		return Configuration{}, nil
@@ -1004,6 +1366,44 @@ func loadConfiguration(fileName string) (Configuration, error) {
 
 	// Migrate old single-bastion config to new multi-bastion format
 	migrateBastionConfig(&config)
+
+	// Initialize BastionLookup if nil
+	if config.BastionLookup == nil {
+		config.BastionLookup = make(map[string]BastionLookup)
+	}
+
+	// Populate Profile field in each bastion and build ID lookup map
+	if config.Profiles != nil {
+		for profileName, profile := range config.Profiles {
+			if profile.Bastions != nil {
+				for bastionName, bastion := range profile.Bastions {
+					// Set Profile field if not already set
+					if bastion.Profile == "" {
+						bastion.Profile = profileName
+					}
+
+					// Generate ID if not present
+					if bastion.ID == "" {
+						newID, err := generateBastionID()
+						if err != nil {
+							return Configuration{}, fmt.Errorf("failed to generate bastion ID: %v", err)
+						}
+						bastion.ID = newID
+					}
+
+					// Add to lookup map
+					config.BastionLookup[bastion.ID] = BastionLookup{
+						Profile: profileName,
+						Name:    bastionName,
+					}
+
+					// Update bastion in profile
+					profile.Bastions[bastionName] = bastion
+				}
+			}
+			config.Profiles[profileName] = profile
+		}
+	}
 
 	return config, nil
 }
@@ -1117,9 +1517,57 @@ func saveConfiguration(fileName string, config *Configuration, options ...string
 		config.Profiles[currentProfile] = profileInfo
 	}
 
+	// Rebuild BastionLookup map before saving
+	rebuildBastionLookup(config)
+
 	// Save the configuration file
 	configBytes, _ := json.MarshalIndent(config, "", "    ")
 	os.WriteFile(fileName, configBytes, 0644)
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func rebuildBastionLookup(config *Configuration) {
+	// Initialize lookup map if nil
+	if config.BastionLookup == nil {
+		config.BastionLookup = make(map[string]BastionLookup)
+	}
+
+	// Clear existing lookup
+	config.BastionLookup = make(map[string]BastionLookup)
+
+	// Rebuild lookup from all profiles
+	if config.Profiles != nil {
+		for profileName, profile := range config.Profiles {
+			if profile.Bastions != nil {
+				for bastionName, bastion := range profile.Bastions {
+					// Ensure Profile field is set
+					if bastion.Profile == "" {
+						bastion.Profile = profileName
+					}
+
+					// Generate ID if not present
+					if bastion.ID == "" {
+						newID, err := generateBastionID()
+						if err == nil {
+							bastion.ID = newID
+						}
+					}
+
+					// Add to lookup map
+					if bastion.ID != "" {
+						config.BastionLookup[bastion.ID] = BastionLookup{
+							Profile: profileName,
+							Name:    bastionName,
+						}
+					}
+
+					// Update bastion in profile
+					profile.Bastions[bastionName] = bastion
+				}
+			}
+			config.Profiles[profileName] = profile
+		}
+	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -1,20 +1,29 @@
-awsutil bastions - List and configure bastion hosts
+awsutil bastions - Manage bastion hosts
 
 USAGE:
-    awsutil bastions [--profile <aws cli profile>]
-    awsutil bastions [-p <aws cli profile>]
+    awsutil bastions list [--profile <aws cli profile>]
+    awsutil bastions add [--profile <aws cli profile>]
 
 DESCRIPTION:
-    Lists all configured bastions for the specified profile. Provides
-    an interactive interface to configure new bastions by querying AWS
-    for RDS databases and EC2 bastion instances.
+    The bastions command provides subcommands to list and add bastion hosts.
+
+SUBCOMMANDS:
+    list    List all configured bastions for the specified profile.
+            Displays bastion information in a vertical format.
+
+    add     Interactively configure a new bastion by querying AWS
+            for RDS databases and EC2 bastion instances.
 
 OPTIONS:
     --profile, -p    AWS CLI profile to use
 
-INTERACTIVE MODE:
-    After listing existing bastions, you can choose to configure a new
-    bastion. The tool will:
+LIST COMMAND:
+    Lists all configured bastions for the specified profile in a vertical
+    format, showing name, instance ID, host, port, and local port for each
+    bastion. The default bastion (if set) will be marked.
+
+ADD COMMAND:
+    Provides an interactive interface to configure new bastions. The tool will:
     1. Query and display available RDS databases
     2. Query and display available bastion EC2 instances
     3. Allow you to select a database and bastion instance

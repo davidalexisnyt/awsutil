@@ -12,7 +12,10 @@ Thus, the `awsutil` tool was born. The aim is to have the tool minimize the amou
 - **SSM Terminal Sessions**: One-command terminal access to EC2 instances
 - **Bastion Host Management**:
   - Multiple named bastions per AWS profile
+  - Cross-profile bastion lookup by name
+  - List configured bastions
   - Interactive configuration with automatic RDS and EC2 discovery
+  - Update existing bastion configurations
   - Port forwarding through bastion hosts
   - Auto-assignment of local ports
 - **Help System**: Built-in help for all commands
@@ -51,7 +54,7 @@ The tool provides the following commands:
 - `instances` - List EC2 instances matching a filter
 - `terminal` - Start an SSM terminal session to an EC2 instance
 - `bastion` - Start a port forwarding session through a bastion host
-- `bastions` - List and configure bastion hosts interactively
+- `bastions` - Manage bastion hosts (list, add, update)
 - `configure` - Configure default settings
 - `help` - Show help information (use `awsutil help <command>` for detailed help)
 
@@ -105,7 +108,10 @@ There are a couple shortcuts for using profiles and logging in that make things 
 To get a filtered list of EC2 instances, e.g. anything starting with the word "example", we would need to run a command like this:
 
 ```shell
-aws --profile dev ec2 describe-instances --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" --filters 'Name=tag:Name,Values=example*' --output=table
+aws --profile dev ec2 describe-instances \
+    --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" \
+    --filters 'Name=tag:Name,Values=example*' \
+    --output=table
 ```
 
 We can simplify this:
@@ -181,35 +187,78 @@ awsutil terminal --profile prod
 
 If you've already configured a default instance for the prod profile.
 
-### Starting a Bastion Session
+### Database Bastions
 
-The bastion functionality supports multiple named bastions per AWS profile, making it easy to manage connections to different databases or services.
+The bastion functionality supports multiple named bastion tunnels per AWS profile, making it easy to manage connections to different databases or services.
+This is handy for when there are different target databases you would like to access, even when the environment has a single bastion jump host.
 
-#### Interactive Configuration (Recommended)
+#### Listing Configured Bastions
 
-The easiest way to configure a bastion is using the interactive `bastions` command:
+To view all configured bastions across all profiles:
+
+```shell
+awsutil bastions list
+```
+
+Or simply:
 
 ```shell
 awsutil bastions
 ```
 
+To filter by a specific profile:
+
+```shell
+awsutil bastions list -p <profile>
+```
+
+This will display all configured bastions, showing:
+
+- Name (with default marker if applicable)
+- ID (unique identifier for the bastion)
+- Profile (AWS profile the bastion belongs to)
+- Instance ID
+- Host
+- Port
+- Local Port
+
+> Note: By default, `bastions list` shows all bastions across all profiles. Use the `-p` option to filter by a specific profile.
+
+#### Bastion Configuration
+
+**Adding a New Bastion**
+
+New bastions are added using the interactive `bastions add` command:
+
+```shell
+awsutil bastions add -p <profile>
+```
+
 This command will:
 
-1. List all currently configured bastions for your profile
-2. Query AWS for available RDS databases
-3. Query AWS for available bastion EC2 instances
-4. Allow you to interactively select a database and bastion instance
-5. Auto-generate a bastion name (or prompt for one)
+1. Query AWS for available RDS databases
+2. Query AWS for available bastion EC2 instances
+3. Allow you to interactively select a database and bastion instance
+4. Auto-generate a bastion name (or prompt for one)
+5. Auto-generate a unique ID for the bastion
 6. Auto-find an available local port
 7. Save the configuration automatically
 
-#### Manual Configuration
+**Updating an Existing Bastion**
 
-You can also configure bastions manually using the `configure` command:
+To update an existing bastion configuration, use the `bastions update` command:
 
 ```shell
-awsutil configure --profile dev --bastion-name my-db --bastion-instance i-1234567890abcdef0 --bastion-host mydb.example.com --bastion-port 5432 --bastion-local 7000
+awsutil bastions update -p <profile> --name <bastion-name>
 ```
+
+Or simply:
+
+```shell
+awsutil bastions update -p <profile>
+```
+
+This will prompt you for the bastion name if not provided, then guide you through the same interactive process as adding a new bastion. The bastion's ID and profile association are preserved during updates.
 
 #### Starting a Bastion Session
 
@@ -219,55 +268,33 @@ Once configured, starting a bastion session is simple:
 awsutil bastion
 ```
 
-This will use your default bastion. If you have multiple bastions configured, you can specify which one to use:
+This will use the default bastion on the default AWS profile. You can also specify the profile using the `-p` option:
+
+```shell
+awsutil bastion -p <profile>
+```
+
+**Finding Bastions by Name Across Profiles**
+
+If you have multiple bastions configured across different profiles, you can specify which one to use with the `--name` option:
 
 ```shell
 awsutil bastion --name my-db
 ```
 
-All parameters are optional if a bastion is configured. You can override any setting:
+When using `--name` without specifying a profile:
+
+- The tool first searches for the bastion in the default profile
+- If not found, it searches all other profiles
+- Once found, it uses the bastion's associated profile to launch the session
+
+If you specify both `--name` and `-p` (or `--profile`), the tool will only search for the bastion in the specified profile:
 
 ```shell
-awsutil bastion --name my-db --local 8000
+awsutil bastion -p dev --name my-db
 ```
 
-If you don't have a bastion configured, you can specify all parameters on the command line:
-
-```shell
-awsutil bastion --instance i-1234567890abcdef0 --host mydb.example.com --port 5432 --local 7000
-```
-
-If the local port is not specified, an available port will be auto-assigned starting from 7000.
-
-#### Multiple Bastions
-
-You can configure multiple bastions for the same profile, each with a unique name:
-
-```json
-{
-  "defaultProfile": "dev",
-  "profiles": {
-    "dev": {
-      "name": "dev",
-      "bastions": {
-        "production-db": {
-          "instance": "i-1234567890abcdef0",
-          "host": "prod-db.example.com",
-          "port": 5432,
-          "localPort": 7000
-        },
-        "staging-db": {
-          "instance": "i-0987654321fedcba0",
-          "host": "staging-db.example.com",
-          "port": 5432,
-          "localPort": 7001
-        }
-      },
-      "defaultBastion": "production-db"
-    }
-  }
-}
-```
+This ensures that the correct AWS profile is used for authentication, even when the bastion name exists in multiple profiles.
 
 ### What if our authentication session has expired?
 
@@ -330,6 +357,9 @@ For detailed help on a specific command:
 ```shell
 awsutil help bastion
 awsutil help bastions
+awsutil help bastions list
+awsutil help bastions add
+awsutil help bastions update
 awsutil help terminal
 # etc.
 ```
@@ -355,7 +385,9 @@ Example configuration:
       "instance": "i-0c15ff251abee847f",
       "bastions": {
         "production-db": {
+          "id": "a1b2c3d4e5f6g7h8",
           "name": "production-db",
+          "profile": "dev",
           "instance": "i-1234567890abcdef0",
           "host": "prod-db.example.com",
           "port": 5432,
@@ -369,7 +401,9 @@ Example configuration:
       "instance": "i-0987654321fedcba0",
       "bastions": {
         "prod-db": {
+          "id": "h8g7f6e5d4c3b2a1",
           "name": "prod-db",
+          "profile": "prod",
           "instance": "i-abcdef1234567890",
           "host": "prod-db.example.com",
           "port": 5432,
@@ -378,8 +412,31 @@ Example configuration:
       },
       "defaultBastion": "prod-db"
     }
+  },
+  "bastionLookup": {
+    "a1b2c3d4e5f6g7h8": {
+      "profile": "dev",
+      "name": "production-db"
+    },
+    "h8g7f6e5d4c3b2a1": {
+      "profile": "prod",
+      "name": "prod-db"
+    }
   }
 }
 ```
+
+**Bastion Fields:**
+
+- `id`: Unique identifier for the bastion (auto-generated)
+- `name`: Human-readable name for the bastion
+- `profile`: AWS profile this bastion is associated with (auto-set)
+- `instance`: EC2 instance ID of the bastion host
+- `host`: Target hostname or IP address
+- `port`: Target port number
+- `localPort`: Local port for port forwarding
+
+**BastionLookup:**
+The `bastionLookup` map provides fast lookup of bastions by their unique ID, mapping to their profile and name. This is automatically maintained by awsutil.
 
 **Note**: The old single-bastion format (`"bastion": {...}`) is still supported and will be automatically migrated to the new format (`"bastions": {...}`) when the configuration is loaded.
