@@ -1,0 +1,9 @@
+awsutil docs - Display the full documentation
+
+USAGE:
+    awsutil docs
+
+DESCRIPTION:
+    Displays the complete application documentation from README.md
+    with formatted output including headers, code blocks, and highlighted text.
+

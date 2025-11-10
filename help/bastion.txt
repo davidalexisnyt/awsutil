@@ -1,0 +1,21 @@
+awsutil bastion - Start a port forwarding session through a bastion host
+
+USAGE:
+    awsutil bastion [--profile <aws cli profile>] [--name <bastion name>]
+                    [--instance <bastion instance id>] [--host <remote host>]
+                    [--port <remote port>] [--local <local port>]
+
+DESCRIPTION:
+    Creates a port forwarding tunnel through a bastion host using AWS SSM.
+    All parameters are optional if a bastion is configured. If --name is
+    not specified and multiple bastions exist, the default bastion is used.
+    If local port is not specified, an available port is auto-assigned.
+
+OPTIONS:
+    --profile, -p         AWS CLI profile to use
+    --name               Name of the configured bastion to use
+    --instance           Bastion EC2 instance ID
+    --host               Remote host to forward to
+    --port               Remote port to forward
+    --local              Local port to bind to
+

@@ -1,0 +1,18 @@
+awsutil - AWS CLI wrapper utility
+
+USAGE:
+    awsutil <command> [options]
+
+COMMANDS:
+    login       Log in to AWS SSO
+    instances   List EC2 instances matching a filter
+    terminal    Start an SSM terminal session to an EC2 instance
+    bastion     Start a port forwarding session through a bastion host
+    bastions    List and configure bastion hosts
+    configure   Configure default settings
+    docs        Display the full documentation (README.md)
+    help        Show help information
+
+For detailed help on a specific command, use:
+    awsutil help <command>
+

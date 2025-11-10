@@ -1,0 +1,21 @@
+awsutil configure - Configure default settings
+
+USAGE:
+    awsutil configure [--profile <aws cli profile>] [--instance <instance id>]
+                     [--bastion-name <name>] [--bastion-instance <value>]
+                     [--bastion-host <value>] [--bastion-port <value>]
+                     [--bastion-local <value>]
+
+DESCRIPTION:
+    Configures default settings for the specified profile. These defaults
+    are used when parameters are not specified in other commands.
+
+OPTIONS:
+    --profile, -p            AWS CLI profile to configure
+    --instance, -i           Default EC2 instance ID
+    --bastion-name          Name of the bastion to configure
+    --bastion-instance      Bastion EC2 instance ID
+    --bastion-host          Remote host for bastion forwarding
+    --bastion-port          Remote port for bastion forwarding
+    --bastion-local         Local port for bastion forwarding
+

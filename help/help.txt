@@ -1,0 +1,11 @@
+awsutil help - Show help information
+
+USAGE:
+    awsutil help [<command>]
+
+DESCRIPTION:
+    Shows general help or detailed help for a specific command.
+
+ARGUMENTS:
+    command    Command name for detailed help (optional)
+

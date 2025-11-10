@@ -1,0 +1,17 @@
+awsutil instances - List EC2 instances matching a filter
+
+USAGE:
+    awsutil instances [--profile <aws cli profile>] <filter prefix>
+    awsutil instances [-p <aws cli profile>] <filter prefix>
+
+DESCRIPTION:
+    Lists EC2 instances whose Name tag starts with the specified filter.
+    Displays instance ID, availability zone, and name. If only one instance
+    is found, it is automatically saved as the default instance.
+
+OPTIONS:
+    --profile, -p    AWS CLI profile to use
+
+ARGUMENTS:
+    filter prefix    Prefix to match against instance Name tags
+
