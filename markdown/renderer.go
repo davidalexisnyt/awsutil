@@ -8,47 +8,33 @@ import (
 
 // ANSI escape codes
 const (
-	ansiReset     = "\033[0m"
-	ansiBold      = "\033[1m"
-	ansiDim       = "\033[2m"
-	ansiItalic    = "\033[3m"
-	ansiUnderline = "\033[4m"
-	ansiFgBlack   = "\033[30m"
-	ansiFgRed     = "\033[31m"
-	ansiFgGreen   = "\033[32m"
-	ansiFgYellow  = "\033[33m"
-	ansiFgBlue    = "\033[34m"
-	ansiFgMagenta = "\033[35m"
-	ansiFgCyan    = "\033[36m"
-	ansiFgWhite   = "\033[37m"
-	ansiBgBlack   = "\033[40m"
-	ansiBgRed     = "\033[41m"
-	ansiBgGreen   = "\033[42m"
-	ansiBgYellow  = "\033[43m"
-	ansiBgBlue    = "\033[44m"
-	ansiBgMagenta = "\033[45m"
-	ansiBgCyan    = "\033[46m"
-	ansiBgWhite   = "\033[47m"
+	ansiReset    = "\033[0m"
+	ansiBold     = "\033[1m"
+	ansiItalic   = "\033[3m"
+	ansiFgGreen  = "\033[32m"
+	ansiFgYellow = "\033[33m"
+	ansiFgCyan   = "\033[36m"
+	ansiFgWhite  = "\033[37m"
+	ansiBgBlack  = "\033[40m"
+	// Add these when needed
+	// ansiDim       = "\033[2m"
+	// ansiUnderline = "\033[4m"
+	// ansiFgBlack   = "\033[30m"
+	// ansiFgRed     = "\033[31m"
+	// ansiFgBlue    = "\033[34m"
+	// ansiFgMagenta = "\033[35m"
+	// ansiBgRed     = "\033[41m"
+	// ansiBgGreen   = "\033[42m"
+	// ansiBgYellow  = "\033[43m"
+	// ansiBgBlue    = "\033[44m"
+	// ansiBgMagenta = "\033[45m"
+	// ansiBgCyan    = "\033[46m"
+	// ansiBgWhite   = "\033[47m"
 )
-
-// isTerminal checks if stdout is a terminal (TTY)
-func isTerminal() bool {
-	fileInfo, err := os.Stdout.Stat()
-	if err != nil {
-		return false
-	}
-	return (fileInfo.Mode() & os.ModeCharDevice) != 0
-}
 
 // RenderMarkdown renders basic Markdown to ANSI-formatted terminal output
 // Supports: headers (# ## ###), bold (**text**), code blocks (```), inline code (`code`), and lists
 func RenderMarkdown(markdown string) {
-	if !isTerminal() {
-		// If not a terminal, just print plain text (strip markdown)
-		renderPlainText(markdown)
-		return
-	}
-
 	os.Stdout.WriteString("\n")
 
 	scanner := bufio.NewScanner(strings.NewReader(markdown))
@@ -95,6 +81,7 @@ func RenderMarkdown(markdown string) {
 			}
 			continue
 		}
+
 		prevLineEmpty = false
 
 		// Headers
@@ -106,6 +93,7 @@ func RenderMarkdown(markdown string) {
 			os.Stdout.WriteString(ansiBold + strings.Repeat("=", len(text)) + ansiReset + "\n")
 			continue
 		}
+
 		if strings.HasPrefix(trimmed, "## ") {
 			// H2
 			text := strings.TrimPrefix(trimmed, "## ")
@@ -114,6 +102,7 @@ func RenderMarkdown(markdown string) {
 			os.Stdout.WriteString(ansiBold + strings.Repeat("-", len(text)) + ansiReset + "\n")
 			continue
 		}
+
 		if strings.HasPrefix(trimmed, "### ") {
 			// H3
 			text := strings.TrimPrefix(trimmed, "### ")
@@ -121,6 +110,7 @@ func RenderMarkdown(markdown string) {
 			os.Stdout.WriteString("\n" + ansiBold + ansiFgYellow + text + ansiReset + "\n")
 			continue
 		}
+
 		if strings.HasPrefix(trimmed, "#### ") {
 			// H4
 			text := strings.TrimPrefix(trimmed, "#### ")
@@ -137,6 +127,7 @@ func RenderMarkdown(markdown string) {
 			os.Stdout.WriteString("  " + ansiFgGreen + "•" + ansiReset + " " + text + "\n")
 			continue
 		}
+
 		if strings.HasPrefix(trimmed, "  - ") || strings.HasPrefix(trimmed, "  * ") {
 			text := strings.TrimPrefix(trimmed, "  - ")
 			text = strings.TrimPrefix(text, "  * ")
@@ -161,6 +152,7 @@ func renderInlineMarkdown(text string) string {
 		if i < len(text)-1 && text[i] == '`' {
 			// Find closing backtick
 			end := strings.IndexByte(text[i+1:], '`')
+
 			if end != -1 {
 				end += i + 1
 				code := text[i+1 : end]
@@ -174,6 +166,7 @@ func renderInlineMarkdown(text string) string {
 		if i < len(text)-1 && text[i] == '*' && text[i+1] == '*' {
 			// Find closing **
 			end := strings.Index(text[i+2:], "**")
+
 			if end != -1 {
 				end += i + 2
 				boldText := text[i+2 : end]
@@ -187,6 +180,7 @@ func renderInlineMarkdown(text string) string {
 		if i < len(text)-1 && text[i] == '*' && text[i+1] != '*' {
 			// Find closing *
 			end := strings.IndexByte(text[i+1:], '*')
+
 			if end != -1 {
 				end += i + 1
 				italicText := text[i+1 : end]
@@ -228,6 +222,7 @@ func renderCodeBlockBox(lang string, lines []string) {
 	// So we need: 3 (───) + len(lang) + at least 1 more dash = 4 + len(lang) minimum
 	if lang != "" {
 		minContentWidth := 4 + len(lang)
+
 		if contentWidth < minContentWidth {
 			contentWidth = minContentWidth
 		}
@@ -244,8 +239,10 @@ func renderCodeBlockBox(lang string, lines []string) {
 		// Fill up to position 5 (we already have ┌, so we need 3 more ─)
 		os.Stdout.WriteString("───")
 		os.Stdout.WriteString(ansiBold + lang + ansiReset + ansiFgCyan)
+
 		// Fill remaining width: maxWidth total - 1 (┌) - 3 (───) - len(lang) - 1 (┐)
 		remaining := maxWidth - 5 - len(lang)
+
 		if remaining > 0 {
 			os.Stdout.WriteString(strings.Repeat("─", remaining))
 		}
@@ -253,6 +250,7 @@ func renderCodeBlockBox(lang string, lines []string) {
 		// No language, just fill with dashes (maxWidth - 2 for borders)
 		os.Stdout.WriteString(strings.Repeat("─", maxWidth-2))
 	}
+
 	os.Stdout.WriteString("┐" + ansiReset + "\n")
 
 	// Code block lines with vertical borders
@@ -261,52 +259,15 @@ func renderCodeBlockBox(lang string, lines []string) {
 	for _, line := range lines {
 		os.Stdout.WriteString(ansiFgCyan + "│" + ansiReset)
 		os.Stdout.WriteString(ansiBgBlack + ansiFgWhite + line)
+
 		// Pad line to codeContentWidth
 		if len(line) < codeContentWidth {
 			os.Stdout.WriteString(strings.Repeat(" ", codeContentWidth-len(line)))
 		}
+
 		os.Stdout.WriteString(ansiReset + ansiFgCyan + "│" + ansiReset + "\n")
 	}
 
 	// Bottom border
 	os.Stdout.WriteString(ansiFgCyan + "└" + strings.Repeat("─", maxWidth-2) + "┘" + ansiReset + "\n")
-}
-
-// renderPlainText strips markdown and renders as plain text (for non-terminal output)
-func renderPlainText(markdown string) {
-	scanner := bufio.NewScanner(strings.NewReader(markdown))
-	inCodeBlock := false
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		// Handle code blocks
-		if strings.HasPrefix(trimmed, "```") {
-			inCodeBlock = !inCodeBlock
-			continue
-		}
-
-		if inCodeBlock {
-			os.Stdout.WriteString(line + "\n")
-			continue
-		}
-
-		// Strip markdown formatting
-		line = strings.TrimPrefix(line, "# ")
-		line = strings.TrimPrefix(line, "## ")
-		line = strings.TrimPrefix(line, "### ")
-		line = strings.TrimPrefix(line, "#### ")
-		line = strings.TrimPrefix(line, "- ")
-		line = strings.TrimPrefix(line, "* ")
-
-		// Remove inline formatting
-		line = strings.ReplaceAll(line, "**", "")
-		line = strings.ReplaceAll(line, "__", "")
-		line = strings.ReplaceAll(line, "*", "")
-		line = strings.ReplaceAll(line, "_", "")
-		line = strings.ReplaceAll(line, "`", "")
-
-		os.Stdout.WriteString(line + "\n")
-	}
 }
