@@ -4,6 +4,5 @@ USAGE:
     awsutil docs
 
 DESCRIPTION:
-    Displays the complete application documentation from README.md
-    with formatted output including headers, code blocks, and highlighted text.
+    Displays the complete application documentation in your default browser.
 
