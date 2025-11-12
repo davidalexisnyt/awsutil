@@ -14,6 +14,7 @@ func startSSMSession(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("terminal", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsutil terminal [--profile <aws cli profile>] [<instance ID>]")
 	}
@@ -39,6 +40,7 @@ func startSSMSession(args []string, config *Configuration) error {
 
 	if len(flagSet.Args()) != 0 {
 		profileInfo.Instance = flagSet.Args()[0]
+		config.IsDirty = true
 	}
 
 	commandArgs := []string{
@@ -90,4 +92,3 @@ func startSSMSession(args []string, config *Configuration) error {
 
 	return nil
 }
-

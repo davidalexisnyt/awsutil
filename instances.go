@@ -14,6 +14,7 @@ func listInstances(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("instances", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsutil instances [--profile <aws cli profile>] <filter string>")
 	}
@@ -121,31 +122,12 @@ func listInstances(args []string, config *Configuration) error {
 		return err
 	}
 
-	if len(instanceList) == 1 {
+	if len(instanceList) == 1 && !strings.Contains(filter, "bastion") {
 		profileInfo := config.Profiles[currentProfile]
 		profileInfo.Name = currentProfile
-
-		if profileInfo.Bastions == nil {
-			profileInfo.Bastions = make(map[string]Bastion)
-		}
-
-		if strings.Contains(instanceList[0][0]["Name"], "bastion") {
-			// Update default bastion instance if it exists, otherwise create one
-			defaultBastionName := "default"
-			if profileInfo.DefaultBastion != "" {
-				defaultBastionName = profileInfo.DefaultBastion
-			}
-			bastion := profileInfo.Bastions[defaultBastionName]
-			bastion.Instance = instanceList[0][0]["Instance"]
-			profileInfo.Bastions[defaultBastionName] = bastion
-			if profileInfo.DefaultBastion == "" {
-				profileInfo.DefaultBastion = defaultBastionName
-			}
-		} else {
-			profileInfo.Instance = instanceList[0][0]["Instance"]
-		}
-
+		profileInfo.Instance = instanceList[0][0]["Instance"]
 		config.Profiles[currentProfile] = profileInfo
+		config.IsDirty = true
 	}
 
 	for i := range len(instanceList) {
@@ -174,8 +156,9 @@ func ensureProfile(config *Configuration, profile *string, profileShort *string)
 
 	// Set the default profile in the configuration if currentProfile is not empty
 	// Otherewise fail with an error
-	if len(currentProfile) != 0 {
+	if len(currentProfile) != 0 && currentProfile != config.DefaultProfile {
 		config.DefaultProfile = currentProfile
+
 		// Ensure profile exists in map
 		if _, exists := config.Profiles[currentProfile]; !exists {
 			config.Profiles[currentProfile] = Profile{
@@ -183,9 +166,11 @@ func ensureProfile(config *Configuration, profile *string, profileShort *string)
 				Bastions: make(map[string]Bastion),
 			}
 		}
+
+		config.IsDirty = true
 	} else if len(config.DefaultProfile) == 0 {
 		return "", fmt.Errorf("must specify the target profile")
 	}
+
 	return currentProfile, nil
 }
-

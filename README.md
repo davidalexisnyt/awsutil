@@ -17,6 +17,7 @@ Thus, the `awsutil` tool was born. The aim is to have the tool minimize the amou
   - List configured bastions
   - Interactive configuration with automatic RDS and EC2 discovery
   - Update existing bastion configurations
+  - Remove bastion configurations
   - Port forwarding through bastion hosts
   - Auto-assignment of local ports
 - **Help System**: Built-in help for all commands
@@ -55,8 +56,7 @@ The tool provides the following commands:
 - `instances` - List EC2 instances matching a filter
 - `terminal` - Start an SSM terminal session to an EC2 instance
 - `bastion` - Start a port forwarding session through a bastion host
-- `bastions` - Manage bastion hosts (list, add, update)
-- `configure` - Configure default settings. Very rarely needed, since most configuration is done automatically.
+- `bastions` - Manage bastion hosts (list, add, update, remove)
 - `help` - Show help information (use `awsutil help <command>` for detailed help)
 - `docs` - Displays the application documentation (contained in README.md) to the terminal. The markdown is converted and rendered to look beautiful in the terminal.
 
@@ -119,7 +119,7 @@ Instances
     ...
 ```
 
-We're going to work quite a bit with the `i-0c15ff251abee847f` instance, so let's set it as our default. We could use the `awsutil configure --instance i-0c15ff251abee847f` command, but why? The overriding theme of `awsutil` is automatically making our lives easier. In this case, the `instances` command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the `terminal` command we'll talk about next).
+We're going to work quite a bit with the `i-0c15ff251abee847f` instance, so let's set it as our default. The overriding theme of `awsutil` is automatically making our lives easier. In this case, the `instances` command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the `terminal` command we'll talk about next).
 
 However, if our `instances` query returns more than one EC2 instance, we'll need to specify the instance ID (just once) when we want to connect to it.
 
@@ -236,6 +236,22 @@ awsutil bastions update -p <profile>
 
 This will prompt you for the bastion name if not provided, then guide you through the same interactive process as adding a new bastion. The bastion's ID and profile association are preserved during updates.
 
+**Removing a Bastion**
+
+To remove a bastion configuration, use the `bastions remove` command:
+
+```shell
+awsutil bastions remove -p <profile> -n <bastion-name>
+```
+
+Or simply:
+
+```shell
+awsutil bastions remove -p <profile>
+```
+
+This will prompt you for the bastion name if not provided. The command will display the bastion information and ask for confirmation before removing it. If the bastion being removed is the default bastion for the profile, the default will be cleared.
+
 #### Starting a Bastion Session
 
 Once configured, starting a bastion session is simple:
@@ -332,6 +348,7 @@ awsutil help bastions
 awsutil help bastions list
 awsutil help bastions add
 awsutil help bastions update
+awsutil help bastions remove
 awsutil help terminal
 # etc.
 ```

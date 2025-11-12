@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
 )
@@ -10,7 +9,8 @@ import (
 type Configuration struct {
 	DefaultProfile string                   `json:"defaultProfile,omitempty"`
 	Profiles       map[string]Profile       `json:"profiles,omitempty"`
-	BastionLookup  map[string]BastionLookup `json:"bastionLookup,omitempty"` // Map of bastion ID to profile and name
+	BastionLookup  map[string]BastionLookup `json:"-"` // Map of bastion ID to profile and name
+	IsDirty        bool                     `json:"-"` // Indicates unsaved changes
 }
 
 type BastionLookup struct {
@@ -87,9 +87,11 @@ func loadConfiguration(fileName string) (Configuration, error) {
 					// Generate ID if not present
 					if bastion.ID == "" {
 						newID, err := generateBastionID()
+
 						if err != nil {
 							return Configuration{}, fmt.Errorf("failed to generate bastion ID: %v", err)
 						}
+
 						bastion.ID = newID
 					}
 
@@ -103,9 +105,12 @@ func loadConfiguration(fileName string) (Configuration, error) {
 					profile.Bastions[bastionName] = bastion
 				}
 			}
+
 			config.Profiles[profileName] = profile
 		}
 	}
+
+	config.IsDirty = false
 
 	return config, nil
 }
@@ -126,6 +131,7 @@ func migrateBastionConfig(config *Configuration) {
 			// Only migrate if "default" doesn't already exist
 			if _, exists := profile.Bastions["default"]; !exists {
 				profile.Bastions["default"] = profile.Bastion
+
 				if profile.DefaultBastion == "" {
 					profile.DefaultBastion = "default"
 				}
@@ -138,85 +144,8 @@ func migrateBastionConfig(config *Configuration) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func saveConfiguration(fileName string, config *Configuration, options ...string) {
-	// Update the configuration with any supplied arguements before saving
-	if len(options) != 0 {
-		usageText := `USAGE:
-		    awsutil configure [--profile <aws cli profile>] [--instance <instance id>] [--bastion-name <name>] [--bastion-instance <value>] [--bastion-host <value>] [--bastion-port <value>] [--bastion-local <value>]
-		`
-
-		flagSet := flag.NewFlagSet("configure", flag.ExitOnError)
-
-		profile := flagSet.String("profile", "", "--profile <aws cli profile>")
-		profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
-
-		instance := flagSet.String("instance", "", "--instance <aws instance ID>")
-		instanceShort := flagSet.String("i", "", "--instance <aws instance ID>")
-
-		bastionName := flagSet.String("bastion-name", "", "--bastion-name <bastion name>")
-		bastionInstsance := flagSet.String("bastion-instance", "", "--bastion-instance <aws instance ID>")
-		bastionHost := flagSet.String("bastion-host", "", "--bastion-host <bastion host name>")
-		bastionPort := flagSet.Int("bastion-port", 0, "--bastion-port <port to forward>")
-		bastionLocalPort := flagSet.Int("bastion-local", 0, "--bastion-local <local port>")
-
-		if err := flagSet.Parse(options); err != nil {
-			fmt.Print(usageText)
-			return
-		}
-
-		currentProfile, err := ensureProfile(config, profile, profileShort)
-		if err != nil {
-			return
-		}
-
-		profileInfo := config.Profiles[currentProfile]
-		if profileInfo.Bastions == nil {
-			profileInfo.Bastions = make(map[string]Bastion)
-		}
-
-		if len(*instance) != 0 {
-			profileInfo.Instance = *instance
-		} else if len(*instanceShort) != 0 {
-			profileInfo.Instance = *instanceShort
-		}
-
-		// Determine which bastion to update
-		bastionKey := *bastionName
-		if bastionKey == "" {
-			// Use default bastion if no name specified
-			if profileInfo.DefaultBastion != "" {
-				bastionKey = profileInfo.DefaultBastion
-			} else {
-				bastionKey = "default"
-			}
-		}
-
-		// Get or create bastion
-		bastion := profileInfo.Bastions[bastionKey]
-		bastion.Name = bastionKey
-
-		if len(*bastionInstsance) != 0 {
-			bastion.Instance = *bastionInstsance
-		}
-
-		if len(*bastionHost) != 0 {
-			bastion.Host = *bastionHost
-		}
-
-		if *bastionPort != 0 {
-			bastion.Port = *bastionPort
-		}
-
-		if *bastionLocalPort != 0 {
-			bastion.LocalPort = *bastionLocalPort
-		}
-
-		// Save bastion back to map
-		profileInfo.Bastions[bastionKey] = bastion
-		if profileInfo.DefaultBastion == "" {
-			profileInfo.DefaultBastion = bastionKey
-		}
-
-		config.Profiles[currentProfile] = profileInfo
+	if !config.IsDirty {
+		return
 	}
 
 	// Rebuild BastionLookup map before saving
@@ -225,6 +154,8 @@ func saveConfiguration(fileName string, config *Configuration, options ...string
 	// Save the configuration file
 	configBytes, _ := json.MarshalIndent(config, "", "    ")
 	os.WriteFile(fileName, configBytes, 0644)
+
+	config.IsDirty = false
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -250,6 +181,7 @@ func rebuildBastionLookup(config *Configuration) {
 					// Generate ID if not present
 					if bastion.ID == "" {
 						newID, err := generateBastionID()
+
 						if err == nil {
 							bastion.ID = newID
 						}
@@ -267,8 +199,8 @@ func rebuildBastionLookup(config *Configuration) {
 					profile.Bastions[bastionName] = bastion
 				}
 			}
+
 			config.Profiles[profileName] = profile
 		}
 	}
 }
-

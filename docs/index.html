@@ -32,6 +32,7 @@
                         <li>List configured bastions</li>
                         <li>Interactive configuration with automatic RDS and EC2 discovery</li>
                         <li>Update existing bastion configurations</li>
+                        <li>Remove bastion configurations</li>
                         <li>Port forwarding through bastion hosts</li>
                         <li>Auto-assignment of local ports</li>
                     </ul>
@@ -72,8 +73,7 @@
                 <li><code>instances</code> - List EC2 instances matching a filter</li>
                 <li><code>terminal</code> - Start an SSM terminal session to an EC2 instance</li>
                 <li><code>bastion</code> - Start a port forwarding session through a bastion host</li>
-                <li><code>bastions</code> - Manage bastion hosts (list, add, update)</li>
-                <li><code>configure</code> - Configure default settings. Very rarely needed, since most configuration is done automatically.</li>
+                <li><code>bastions</code> - Manage bastion hosts (list, add, update, remove)</li>
                 <li><code>help</code> - Show help information (use <code>awsutil help &lt;command&gt;</code> for detailed help)</li>
                 <li><code>docs</code> - Displays the application documentation (contained in README.md) to the terminal. The markdown is converted and rendered to look beautiful in the terminal.</li>
             </ul>
@@ -125,7 +125,7 @@
     example-app-stg-asg: i-0c15ff251abee847f
     ...</code></pre>
 
-            <p>We're going to work quite a bit with the <code>i-0c15ff251abee847f</code> instance, so let's set it as our default. We could use the <code>awsutil configure --instance i-0c15ff251abee847f</code> command, but why? The overriding theme of <code>awsutil</code> is automatically making our lives easier. In this case, the <code>instances</code> command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the <code>terminal</code> command we'll talk about next).</p>
+            <p>We're going to work quite a bit with the <code>i-0c15ff251abee847f</code> instance, so let's set it as our default. The overriding theme of <code>awsutil</code> is automatically making our lives easier. In this case, the <code>instances</code> command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the <code>terminal</code> command we'll talk about next).</p>
 
             <p>However, if our <code>instances</code> query returns more than one EC2 instance, we'll need to specify the instance ID (just once) when we want to connect to it.</p>
 
@@ -238,6 +238,18 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
             <p>This will prompt you for the bastion name if not provided, then guide you through the same interactive process as adding a new bastion. The bastion's ID and profile association are preserved during updates.</p>
 
+            <p><strong>Removing a Bastion</strong></p>
+
+            <p>To remove a bastion configuration, use the <code>bastions remove</code> command:</p>
+
+            <pre><code class="language-shell">awsutil bastions remove -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
+
+            <p>Or simply:</p>
+
+            <pre><code class="language-shell">awsutil bastions remove -p &lt;profile&gt;</code></pre>
+
+            <p>This will prompt you for the bastion name if not provided. The command will display the bastion information and ask for confirmation before removing it. If the bastion being removed is the default bastion for the profile, the default will be cleared.</p>
+
             <h4>Starting a Bastion Session</h4>
 
             <p>Once configured, starting a bastion session is simple:</p>
@@ -315,6 +327,7 @@ awsutil help bastions
 awsutil help bastions list
 awsutil help bastions add
 awsutil help bastions update
+awsutil help bastions remove
 awsutil help terminal
 # etc.</code></pre>
 

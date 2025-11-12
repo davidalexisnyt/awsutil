@@ -50,9 +50,6 @@ func main() {
 		err = listInstances(os.Args[2:], &config)
 	case "terminal":
 		err = startSSMSession(os.Args[2:], &config)
-	case "configure":
-		saveConfiguration(configFile, &config, os.Args[2:]...)
-		return
 	case "bastion":
 		err = startBastionTunnel(os.Args[2:], &config)
 	case "bastions":
@@ -68,9 +65,11 @@ func main() {
 				err = addBastion(os.Args[3:], &config)
 			case "update":
 				err = updateBastion(os.Args[3:], &config)
+			case "remove":
+				err = removeBastion(os.Args[3:], &config)
 			default:
 				fmt.Printf("Invalid bastions subcommand: %s\n", subcommand)
-				fmt.Println("Use 'awsutil bastions list' to list bastions, 'awsutil bastions add' to add a new bastion, or 'awsutil bastions update' to update an existing bastion.")
+				fmt.Println("Use 'awsutil bastions list' to list bastions, 'awsutil bastions add' to add a new bastion, 'awsutil bastions update' to update an existing bastion, or 'awsutil bastions remove' to remove a bastion.")
 				os.Exit(1)
 			}
 		}
