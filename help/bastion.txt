@@ -11,11 +11,32 @@ DESCRIPTION:
     not specified and multiple bastions exist, the default bastion is used.
     If local port is not specified, an available port is auto-assigned.
 
+    When using --name without specifying a profile:
+    - The tool first searches for the bastion in the default profile
+    - If not found, it searches all other profiles
+    - Once found, it uses the bastion's associated profile to launch the session
+
+    If both --name and --profile are specified, the tool only searches
+    for the bastion in the specified profile.
+
 OPTIONS:
     --profile, -p         AWS CLI profile to use
     --name               Name of the configured bastion to use
-    --instance           Bastion EC2 instance ID
-    --host               Remote host to forward to
-    --port               Remote port to forward
-    --local              Local port to bind to
+    --instance           Bastion EC2 instance ID (overrides configured instance)
+    --host               Remote host to forward to (overrides configured host)
+    --port               Remote port to forward (overrides configured port)
+    --local              Local port to bind to (overrides configured local port)
+
+EXAMPLES:
+    awsutil bastion
+        Uses the default bastion on the default AWS profile.
+
+    awsutil bastion -p dev
+        Uses the default bastion on the specified profile.
+
+    awsutil bastion --name my-prod-db
+        Searches for bastion named "my-prod-db" across all profiles.
+
+    awsutil bastion -p dev --name my-db
+        Uses the bastion named "my-db" from the dev profile only.
 

@@ -1,11 +1,14 @@
 awsutil bastions - Manage bastion hosts
 
 USAGE:
-    awsutil bastions list [--profile <aws cli profile>]
+    awsutil bastions [list] [--profile <aws cli profile>]
     awsutil bastions add [--profile <aws cli profile>]
+    awsutil bastions update [--profile <aws cli profile>] [--name <bastion name>]
+    awsutil bastions remove [--profile <aws cli profile>] [--name <bastion name>]
 
 DESCRIPTION:
-    The bastions command provides subcommands to list and add bastion hosts.
+    The bastions command provides subcommands to list, add, update, and remove
+    bastion hosts. If no subcommand is provided, defaults to 'list'.
 
 SUBCOMMANDS:
     list    List all configured bastions for the specified profile.
@@ -14,13 +17,23 @@ SUBCOMMANDS:
     add     Interactively configure a new bastion by querying AWS
             for RDS databases and EC2 bastion instances.
 
+    update  Update an existing bastion configuration. Prompts for bastion
+            name if not provided via --name flag, then guides through the
+            same interactive process as adding a new bastion.
+
+    remove  Remove a named bastion from the configuration. Prompts for
+            confirmation before removal. The bastion name can be provided
+            via --name or -n flag, or will be prompted interactively.
+
 OPTIONS:
     --profile, -p    AWS CLI profile to use
+    --name, -n       Bastion name (for update and remove commands)
 
 LIST COMMAND:
     Lists all configured bastions for the specified profile in a vertical
     format, showing name, instance ID, host, port, and local port for each
-    bastion. The default bastion (if set) will be marked.
+    bastion. The default bastion (if set) will be marked with "(default)".
+    If no profile is specified, lists bastions across all profiles.
 
 ADD COMMAND:
     Provides an interactive interface to configure new bastions. The tool will:
@@ -30,4 +43,18 @@ ADD COMMAND:
     4. Auto-generate a bastion name or prompt for one
     5. Auto-find an available local port
     6. Save the configuration
+
+UPDATE COMMAND:
+    Updates an existing bastion configuration. The bastion's ID and profile
+    association are preserved during updates. The command will:
+    1. Prompt for bastion name if not provided via --name flag
+    2. Guide you through the same interactive process as adding a new bastion
+    3. Update the configuration with your selections
+
+REMOVE COMMAND:
+    Removes a bastion configuration from the specified profile. The command will:
+    1. Prompt for bastion name if not provided via --name or -n flag
+    2. Display the bastion information
+    3. Ask for confirmation before removal
+    4. Clear the default bastion if the removed bastion was the default
 

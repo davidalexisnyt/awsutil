@@ -172,9 +172,7 @@
         <ul>
           <li>
             Once a profile is used with a command, it becomes the default for
-            further commands. e.g. If we login using the dev profile (<code
-              >awsutil login -p dev</code
-            >), the <code>dev</code> profile becomes the default for other
+            further commands. e.g. If we login using the dev profile (<code>awsutil login -p dev</code>), the <code>dev</code> profile becomes the default for other
             commands like <code>awsutil instances find</code> or even when you
             need to login again later, <code>awsutil login</code> will log in
             using the <code>dev</code> profile since it was the last one we
@@ -378,11 +376,11 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           (IP address):
         </p>
 
-        <pre><code class="language-shell">awsutil terminal -h 10.0.1.5</code></pre>
+        <pre><code class="language-shell">awsutil terminal -h some-aws-host-stg-asg</code></pre>
 
         <p>Or with the long form:</p>
 
-        <pre><code class="language-shell">awsutil terminal --host 10.0.1.5</code></pre>
+        <pre><code class="language-shell">awsutil terminal --host some-aws-host-stg-asg</code></pre>
 
         <p>
           Similar to instance name lookup, if no profile is specified, it
@@ -766,13 +764,13 @@ awsutil help terminal
           "name": "myapp",
           "id": "i-0c15ff251abee847f",
           "profile": "dev",
-          "host": "10.0.1.5"
+          "host": "some-aws-host-stg-asg"
         },
         "default": {
           "name": "default",
           "id": "i-0c15ff251abee847f",
           "profile": "dev",
-          "host": "10.0.1.5"
+          "host": "some-aws-host-stg-asg"
         }
       },
       "bastions": {

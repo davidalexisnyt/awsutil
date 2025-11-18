@@ -40,7 +40,8 @@ FIND COMMAND:
 LIST COMMAND:
     Lists all configured instances for the specified profile in a vertical format,
     showing name, instance ID, profile, and host for each instance. The default
-    instance (if set) will be marked with "(default)".
+    instance (if set) will be marked with "(default)". If no profile is specified,
+    lists instances across all profiles.
 
 ADD COMMAND:
     Provides an interactive interface to add a new named instance:
