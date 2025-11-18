@@ -31,9 +31,6 @@ var helpBastion string
 //go:embed help/bastions.txt
 var helpBastions string
 
-//go:embed help/configure.txt
-var helpConfigure string
-
 //go:embed help/help.txt
 var helpHelp string
 
@@ -144,8 +141,6 @@ func showHelp(command string) {
 		fmt.Print(helpBastions)
 	case "bastions add":
 		fmt.Print(helpBastions)
-	case "configure":
-		fmt.Print(helpConfigure)
 	case "docs":
 		fmt.Print(helpDocs)
 	case "help":
