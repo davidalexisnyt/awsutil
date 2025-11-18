@@ -47,7 +47,27 @@ func main() {
 	case "login":
 		err = login(os.Args[2:], &config)
 	case "instances":
-		err = listInstances(os.Args[2:], &config)
+		if len(os.Args) < 3 {
+			fmt.Printf("Invalid instances command: subcommand required\n")
+			fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
+			os.Exit(1)
+		} else {
+			subcommand := strings.ToLower(os.Args[2])
+			switch subcommand {
+			case "find":
+				err = findInstances(os.Args[3:], &config)
+			case "list":
+				err = listInstances(os.Args[3:], &config)
+			case "add":
+				err = addInstance(os.Args[3:], &config)
+			case "remove":
+				err = removeInstance(os.Args[3:], &config)
+			default:
+				fmt.Printf("Invalid instances subcommand: %s\n", subcommand)
+				fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
+				os.Exit(1)
+			}
+		}
 	case "terminal":
 		err = startSSMSession(os.Args[2:], &config)
 	case "bastion":

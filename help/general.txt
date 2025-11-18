@@ -5,10 +5,10 @@ USAGE:
 
 COMMANDS:
     login       Log in to AWS SSO
-    instances   List EC2 instances matching a filter
+    instances   Manage EC2 instances (find, list, add, remove)
     terminal    Start an SSM terminal session to an EC2 instance
     bastion     Start a port forwarding session through a bastion host
-    bastions    Manage bastion hosts (list, add, update)
+    bastions    Manage bastion hosts (list, add, update, remove)
     configure   Configure default settings
     docs        Display the full documentation in a web page
     help        Show help information

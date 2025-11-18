@@ -1,17 +1,37 @@
 awsutil terminal - Start an SSM terminal session to an EC2 instance
 
 USAGE:
-    awsutil terminal [--profile <aws cli profile>] [<instance id>]
-    awsutil terminal [-p <aws cli profile>] [<instance id>]
+    awsutil terminal [--profile <aws cli profile>] [<instance name>]
+    awsutil terminal [--profile <aws cli profile>] [--host <instance host>]
+    awsutil terminal [-p <aws cli profile>] [<instance name>]
+    awsutil terminal [-p <aws cli profile>] [-h <instance host>]
 
 DESCRIPTION:
-    Starts an AWS Systems Manager (SSM) terminal session to the specified
-    EC2 instance. If no instance ID is provided, uses the default instance
-    from configuration. Automatically logs in if session has expired.
+    Starts an AWS Systems Manager (SSM) terminal session to an EC2 instance.
+    The instance can be specified by name, host, or will use the default
+    instance if no arguments are provided. If an instance name is provided
+    and not found in the default profile, all profiles are searched.
+    Automatically logs in if session has expired.
+
+EXAMPLES:
+    awsutil terminal
+        Connects to the default instance of the default profile.
+
+    awsutil terminal -p myprofile
+        Connects to the default instance of the specified profile.
+
+    awsutil terminal myinstance
+        Connects to the named instance. Searches default profile first,
+        then all profiles if not found.
+
+    awsutil terminal -h 10.0.1.5
+        Connects to the instance with the specified host value. Searches
+        default profile first, then all profiles if not found.
 
 OPTIONS:
     --profile, -p    AWS CLI profile to use
+    --host, -h       Instance host (IP address) to search for
 
 ARGUMENTS:
-    instance id      EC2 instance ID (optional if default is configured)
+    instance name    Name of the configured instance (optional if default is configured)
 

@@ -19,11 +19,20 @@ type BastionLookup struct {
 }
 
 type Profile struct {
-	Name           string             `json:"name,omitempty"`
-	Instance       string             `json:"instance,omitempty"`
-	Bastion        Bastion            `json:"bastion,omitempty"`        // Deprecated: use Bastions instead
-	Bastions       map[string]Bastion `json:"bastions,omitempty"`       // New: multiple named bastions
-	DefaultBastion string             `json:"defaultBastion,omitempty"` // Default bastion name
+	Name            string              `json:"name,omitempty"`
+	Instance        string              `json:"instance,omitempty"`        // Deprecated: use DefaultInstance instead
+	DefaultInstance string              `json:"defaultInstance,omitempty"` // Default instance name
+	Bastion         Bastion             `json:"bastion,omitempty"`         // Deprecated: use Bastions instead
+	Bastions        map[string]Bastion  `json:"bastions,omitempty"`        // New: multiple named bastions
+	DefaultBastion  string              `json:"defaultBastion,omitempty"`  // Default bastion name
+	Instances       map[string]Instance `json:"instances,omitempty"`       // Named EC2 instances
+}
+
+type Instance struct {
+	Name    string `json:"name,omitempty"`
+	ID      string `json:"id,omitempty"`
+	Profile string `json:"profile,omitempty"`
+	Host    string `json:"host,omitempty"`
 }
 
 type Bastion struct {
@@ -47,6 +56,7 @@ type EC2Instance struct {
 	Instance string `json:"Instance"`
 	Name     string `json:"Name"`
 	AZ       string `json:"AZ"`
+	Host     string `json:"Host"`
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -77,6 +87,21 @@ func loadConfiguration(fileName string) (Configuration, error) {
 	// Populate Profile field in each bastion and build ID lookup map
 	if config.Profiles != nil {
 		for profileName, profile := range config.Profiles {
+			// Initialize Instances map if nil
+			if profile.Instances == nil {
+				profile.Instances = make(map[string]Instance)
+			}
+
+			// Populate Profile field in each instance
+			for instanceName, instance := range profile.Instances {
+				// Set Profile field if not already set
+				if instance.Profile == "" {
+					instance.Profile = profileName
+				}
+				// Update instance in profile
+				profile.Instances[instanceName] = instance
+			}
+
 			if profile.Bastions != nil {
 				for bastionName, bastion := range profile.Bastions {
 					// Set Profile field if not already set
@@ -136,6 +161,23 @@ func migrateBastionConfig(config *Configuration) {
 					profile.DefaultBastion = "default"
 				}
 			}
+		}
+
+		// Initialize Instances map if nil
+		if profile.Instances == nil {
+			profile.Instances = make(map[string]Instance)
+		}
+
+		// Migrate old Instance field to DefaultInstance if needed
+		if profile.Instance != "" && profile.DefaultInstance == "" {
+			// Create a "default" entry in Instances map
+			profile.Instances["default"] = Instance{
+				Name:    "default",
+				ID:      profile.Instance,
+				Profile: profileName,
+				Host:    profile.Instance, // Placeholder - could be improved
+			}
+			profile.DefaultInstance = "default"
 		}
 
 		config.Profiles[profileName] = profile

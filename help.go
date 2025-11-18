@@ -132,6 +132,8 @@ func showHelp(command string) {
 		fmt.Print(helpLogin)
 	case "instances":
 		fmt.Print(helpInstances)
+	case "instances find":
+		fmt.Print(helpInstances)
 	case "terminal":
 		fmt.Print(helpTerminal)
 	case "bastion":

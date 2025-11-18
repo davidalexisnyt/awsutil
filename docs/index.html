@@ -23,8 +23,17 @@
 
             <ul>
                 <li><strong>AWS SSO Login</strong>: Simplified login with automatic profile management</li>
-                <li><strong>EC2 Instance Discovery</strong>: Quickly find and list EC2 instances by name pattern</li>
-                <li><strong>SSM Terminal Sessions</strong>: One-command terminal access to EC2 instances</li>
+                <li><strong>EC2 Instance Management</strong>:
+                    <ul>
+                        <li>Find EC2 instances by name pattern (contains match)</li>
+                        <li>Multiple named instances per AWS profile</li>
+                        <li>Cross-profile instance lookup by name or host</li>
+                        <li>List configured instances</li>
+                        <li>Add and remove named instances</li>
+                        <li>Automatic default instance selection</li>
+                    </ul>
+                </li>
+                <li><strong>SSM Terminal Sessions</strong>: One-command terminal access to EC2 instances by name, host, or default</li>
                 <li><strong>Bastion Host Management</strong>:
                     <ul>
                         <li>Multiple named bastions per AWS profile</li>
@@ -70,7 +79,7 @@
 
             <ul>
                 <li><code>login</code> - Log in to AWS SSO</li>
-                <li><code>instances</code> - List EC2 instances matching a filter</li>
+                <li><code>instances</code> - Manage EC2 instances (find, list, add, remove)</li>
                 <li><code>terminal</code> - Start an SSM terminal session to an EC2 instance</li>
                 <li><code>bastion</code> - Start a port forwarding session through a bastion host</li>
                 <li><code>bastions</code> - Manage bastion hosts (list, add, update, remove)</li>
@@ -97,61 +106,139 @@
             <p>But nothing is gained by using <code>awsutil</code> like this, so let's simplify things by automatically taking care of some housekeeping under the hood.</p>
 
             <ul>
-                <li>Once a profile is used with a command, it becomes the default for further commands. e.g. If we login using the dev profile (<code>awsutil login -p dev</code>), the <code>dev</code> profile becomes the default for other commands like <code>awsutil instances</code> or even when you need to login again later, <code>awsutil login</code> will log in using the <code>dev</code> profile since it was the last one we used.</li>
-                <li>There is no need to log in before using another command. <code>awsutil</code> will see that we're not currently logged in and will perform the login process before the command that was run. e.g. Let's say we run <code>awsutil instances myapp</code> without first running <code>awsutil login</code>, we'll first see the AWS login page get launched. Once authentication is done, the <code>instances</code> command will be run, listing any existing instances with names starting with "myapp" (we'll go deeper into the <code>instances</code> command later).</li>
+                <li>Once a profile is used with a command, it becomes the default for further commands. e.g. If we login using the dev profile (<code>awsutil login -p dev</code>), the <code>dev</code> profile becomes the default for other commands like <code>awsutil instances find</code> or even when you need to login again later, <code>awsutil login</code> will log in using the <code>dev</code> profile since it was the last one we used.</li>
+                <li>There is no need to log in before using another command. <code>awsutil</code> will see that we're not currently logged in and will perform the login process before the command that was run. e.g. Let's say we run <code>awsutil instances find myapp</code> without first running <code>awsutil login</code>, we'll first see the AWS login page get launched. Once authentication is done, the <code>instances find</code> command will be run, listing any existing instances with names containing "myapp" (we'll go deeper into the <code>instances</code> command later).</li>
                 <li>Heck, we don't even need to ever run the <code>awsutil login</code> command if we don't want to, since ... see the previous bullet point.</li>
             </ul>
 
-            <h3>Get a list if EC2 instances</h3>
+            <h3>Managing EC2 Instances</h3>
 
-            <p>To get a filtered list of EC2 instances, e.g. anything starting with the word "example", we would normally need to run a complex AWS CLI query command like this:</p>
+            <p>The <code>instances</code> command provides several subcommands to find and manage EC2 instances. Instances can be named and stored in configuration for easy access.</p>
+
+            <h4>Finding EC2 Instances</h4>
+
+            <p>To find EC2 instances matching a filter (e.g., anything containing the word "example"), we would normally need to run a complex AWS CLI query command like this:</p>
 
             <pre><code class="language-shell">aws --profile dev ec2 describe-instances \
     --query "Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}" \
-    --filters 'Name=tag:Name,Values=example*' \
+    --filters 'Name=tag:Name,Values=*example*' \
     --output=table</code></pre>
 
             <p>There's no way that anyone will remember this. So let's simplify the process with awsutil:</p>
 
-            <pre><code class="language-shell">awsutil instances --profile dev example</code></pre>
+            <pre><code class="language-shell">awsutil instances find --profile dev example</code></pre>
 
             <p>But wait... <code>dev</code> was already set as our default profile from our previous commands, so we can just use:</p>
 
-            <pre><code class="language-shell">awsutil instances example</code></pre>
+            <pre><code class="language-shell">awsutil instances find example</code></pre>
 
             <p>This will print out something like this:</p>
 
-            <pre><code>Instances
-    example-app-stg-asg: i-0c15ff251abee847f
+            <pre><code>Instances (dev)
+    i-0c15ff251abee847f	 example-app-stg-asg
     ...</code></pre>
 
-            <p>We're going to work quite a bit with the <code>i-0c15ff251abee847f</code> instance, so let's set it as our default. The overriding theme of <code>awsutil</code> is automatically making our lives easier. In this case, the <code>instances</code> command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the <code>terminal</code> command we'll talk about next).</p>
+            <p>Note that the filter now uses a "contains" match instead of "starts with", making it easier to find instances.</p>
 
-            <p>However, if our <code>instances</code> query returns more than one EC2 instance, we'll need to specify the instance ID (just once) when we want to connect to it.</p>
+            <p>If exactly one instance is found (and it's not a bastion), <code>awsutil</code> automatically saves it as the default instance for the profile.</p>
+
+            <h4>Listing Configured Instances</h4>
+
+            <p>To view all configured named instances:</p>
+
+            <pre><code class="language-shell">awsutil instances list</code></pre>
+
+            <p>Or filter by a specific profile:</p>
+
+            <pre><code class="language-shell">awsutil instances list -p dev</code></pre>
+
+            <p>This displays all configured instances, showing name, instance ID, profile, and host. The default instance (if set) will be marked with "(default)".</p>
+
+            <h4>Adding a Named Instance</h4>
+
+            <p>To add a new named instance to your configuration:</p>
+
+            <pre><code class="language-shell">awsutil instances add -p dev example</code></pre>
+
+            <p>Or with a pre-specified name:</p>
+
+            <pre><code class="language-shell">awsutil instances add -p dev -n myapp example</code></pre>
+
+            <p>This command will:</p>
+
+            <ol>
+                <li>Query AWS for EC2 instances matching the filter</li>
+                <li>Display available instances for selection</li>
+                <li>Prompt for instance name (or use the <code>--name</code> flag if provided)</li>
+                <li>Save the instance configuration</li>
+            </ol>
+
+            <h4>Removing a Named Instance</h4>
+
+            <p>To remove a named instance:</p>
+
+            <pre><code class="language-shell">awsutil instances remove -p dev -n myapp</code></pre>
+
+            <p>Or simply:</p>
+
+            <pre><code class="language-shell">awsutil instances remove -p dev</code></pre>
+
+            <p>The command will prompt for the instance name if not provided, display the instance information, and ask for confirmation before removal.</p>
 
             <blockquote>
                 <p><strong>NOTE:</strong> You should notice a new file called <code>awsutil_config.json</code> in the same location as the <code>awsutil</code> executable after running the commands we've gone over so far. Take a look at the file if you're curious to see how <code>awsutil</code> keeps track of things.</p>
             </blockquote>
 
-            <h3>Launching an SSM terminal session</h3>
+            <h3>Launching an SSM Terminal Session</h3>
 
             <p>We would normally create an SSM session with the AWS CLI like this:</p>
 
             <pre><code class="language-shell">aws sso login --profile dev
 aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
-            <p>Not as bad as the instance query command, but still too complicated. We have better things to do with our time. With <code>awsutil</code>, we would do the same thing like this:</p>
+            <p>Not as bad as the instance query command, but still too complicated. We have better things to do with our time. With <code>awsutil</code>, we can connect in several ways:</p>
+
+            <h4>Using the Default Instance</h4>
+
+            <p>The simplest way is to use the default instance:</p>
 
             <pre><code class="language-shell">awsutil terminal</code></pre>
 
-            <p>Remember the <code>awsutil instances</code> command we ran before that returned just one matching instance? The instance information was automatically saved as our default, so the <code>awsutil terminal</code> command just knows to connect to it.</p>
+            <p>This connects to the default instance of the default profile. You can also specify a profile:</p>
 
-            <p>There are situations where we might need to specify the instance ID and/or the profile ID with the <code>terminal</code> command:</p>
+            <pre><code class="language-shell">awsutil terminal -p dev</code></pre>
+
+            <p>This connects to the default instance of the specified profile.</p>
+
+            <h4>Using Instance Names</h4>
+
+            <p>You can connect to a named instance by providing the instance name:</p>
+
+            <pre><code class="language-shell">awsutil terminal myinstance</code></pre>
+
+            <p>When using an instance name without specifying a profile:</p>
 
             <ul>
-                <li>The last <code>instances</code> query we ran returned a list of more than one instance. <code>awsutil</code> can't know which one you would want to use, to it does not perform any automatic configuration. In this case, we will need to use <code>awsutil terminal &lt;instance id&gt;</code> to connect to the instance we want. NOW, the instance will get automatically saved as our default going forward.</li>
-                <li>The last commands we used were against the <code>dev</code> instance, but now we want to connect to an instance under the <code>prod</code> profile. In this case, we need to specify both the instance ID and the profile: <code>awsutil terminal -p prod &lt;instance id&gt;</code>. <code>awsutil</code> will automatically save the specified instance ID as the default... for the prod profile. So if we already have a default instance for our dev profile, we still just need to run <code>awsutil terminal -p dev</code> to connect to the last dev instance we used.</li>
+                <li>The tool first searches for the instance in the default profile</li>
+                <li>If it does not find one, it searches all other profiles</li>
+                <li>Once it finds an instance with the supplied name, it uses the instance's associated profile to launch the session</li>
             </ul>
+
+            <p>If you specify both the instance name and profile, the tool will only search for the instance in the specified profile:</p>
+
+            <pre><code class="language-shell">awsutil terminal -p dev myinstance</code></pre>
+
+            <h4>Using Host Lookup</h4>
+
+            <p>You can also connect by searching for an instance with a specific host (IP address):</p>
+
+            <pre><code class="language-shell">awsutil terminal -h 10.0.1.5</code></pre>
+
+            <p>Or with the long form:</p>
+
+            <pre><code class="language-shell">awsutil terminal --host 10.0.1.5</code></pre>
+
+            <p>Similar to instance name lookup, if no profile is specified, it searches the default profile first, then all profiles if not found.</p>
 
             <p>Again, the theme with <code>awsutil</code> is to remember the context of what we were doing so it can save us time and effort.</p>
 
@@ -301,18 +388,19 @@ awsutil terminal</code></pre>
 
             <h3>More Automatic Configuration Examples</h3>
 
-            <p>What if you want to start an SSM session to an instance you already know and this is the first time you're using <code>awsutil</code>? We can kill two proverbial birds with one stone:</p>
+            <p>What if you want to start an SSM session to an instance you already know and this is the first time you're using <code>awsutil</code>? You can add the instance to your configuration first, then connect:</p>
 
-            <pre><code class="language-shell">awsutil terminal --profile dev i-0c15ff251abee847f</code></pre>
+            <pre><code class="language-shell">awsutil instances add -p dev -n myinstance example
+awsutil terminal myinstance</code></pre>
 
-            <p>The profile and instance ID will automatically get saved, an SSO authentication session will be created, and you will be connected to the instance via an SSM terminal session. Then you'd simply use <code>awsutil terminal</code> to log in to the instance again later.</p>
+            <p>Or if you know the instance ID, you can still use it directly (for backward compatibility), but it's better to add it as a named instance first. The profile and instance will automatically get saved, an SSO authentication session will be created, and you will be connected to the instance via an SSM terminal session. Then you'd simply use <code>awsutil terminal</code> or <code>awsutil terminal myinstance</code> to connect to the instance again later.</p>
 
-            <p>Let's simplify even further. If the filter we supply for the <code>awsutil instances</code> command results in just one instance being returned, <code>awsutil</code> will save that instance ID as your default. Let's try it. First, delete the <code>awsutil_config.json</code> file so we're sure we have no defaults saved. Then issue do something like this, where the <em>filter</em> parameter ensures that we get just one instance back:</p>
+            <p>Let's simplify even further. If the filter we supply for the <code>awsutil instances find</code> command results in just one instance being returned, <code>awsutil</code> will save that instance as your default. Let's try it. First, delete the <code>awsutil_config.json</code> file so we're sure we have no defaults saved. Then do something like this, where the <em>filter</em> parameter ensures that we get just one instance back:</p>
 
-            <pre><code class="language-shell">awsutil instances --profile spg very-specific-prefix
+            <pre><code class="language-shell">awsutil instances find --profile spg very-specific-prefix
 awsutil terminal</code></pre>
 
-            <p>Both the profile and the resultant instance ID from the 1st command will be remembered for further commands.</p>
+            <p>Both the profile and the resultant instance from the 1st command will be remembered for further commands.</p>
 
             <h2>Getting Help</h2>
 
@@ -328,6 +416,11 @@ awsutil help bastions list
 awsutil help bastions add
 awsutil help bastions update
 awsutil help bastions remove
+awsutil help instances
+awsutil help instances find
+awsutil help instances list
+awsutil help instances add
+awsutil help instances remove
 awsutil help terminal
 # etc.</code></pre>
 
@@ -343,7 +436,9 @@ awsutil help terminal
                 <li><strong>Default Profile</strong>: The AWS CLI profile to use by default</li>
                 <li><strong>Per-Profile Settings</strong>:
                     <ul>
-                        <li>Default EC2 instance ID</li>
+                        <li>Default EC2 instance ID (deprecated, use defaultInstance with named instances)</li>
+                        <li>Multiple named EC2 instances</li>
+                        <li>Default instance name</li>
                         <li>Multiple named bastions</li>
                         <li>Default bastion name</li>
                     </ul>
@@ -358,6 +453,21 @@ awsutil help terminal
     "dev": {
       "name": "dev",
       "instance": "i-0c15ff251abee847f",
+      "defaultInstance": "myapp",
+      "instances": {
+        "myapp": {
+          "name": "myapp",
+          "id": "i-0c15ff251abee847f",
+          "profile": "dev",
+          "host": "10.0.1.5"
+        },
+        "default": {
+          "name": "default",
+          "id": "i-0c15ff251abee847f",
+          "profile": "dev",
+          "host": "10.0.1.5"
+        }
+      },
       "bastions": {
         "production-db": {
           "id": "a1b2c3d4e5f6g7h8",
@@ -374,6 +484,15 @@ awsutil help terminal
     "prod": {
       "name": "prod",
       "instance": "i-0987654321fedcba0",
+      "defaultInstance": "prod-app",
+      "instances": {
+        "prod-app": {
+          "name": "prod-app",
+          "id": "i-0987654321fedcba0",
+          "profile": "prod",
+          "host": "10.1.1.10"
+        }
+      },
       "bastions": {
         "prod-db": {
           "id": "h8g7f6e5d4c3b2a1",

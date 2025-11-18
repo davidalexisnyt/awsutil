@@ -1,17 +1,61 @@
-awsutil instances - List EC2 instances matching a filter
+awsutil instances - Manage EC2 instances
 
 USAGE:
-    awsutil instances [--profile <aws cli profile>] <filter prefix>
-    awsutil instances [-p <aws cli profile>] <filter prefix>
+    awsutil instances find [--profile <aws cli profile>] <filter string>
+    awsutil instances list [--profile <aws cli profile>]
+    awsutil instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>
+    awsutil instances remove [--profile <aws cli profile>] [--name <instance name>]
 
 DESCRIPTION:
-    Lists EC2 instances whose Name tag starts with the specified filter.
-    Displays instance ID, availability zone, and name. If only one instance
-    is found, it is automatically saved as the default instance.
+    The instances command provides subcommands to find and manage EC2 instances.
+    Instances can be named and stored in configuration for easy access.
+
+SUBCOMMANDS:
+    find    Find EC2 instances whose Name tag contains the specified filter string.
+            Displays instance ID and name. If exactly one instance is found (and
+            it's not a bastion), it is automatically saved as the default instance.
+
+    list    List all configured named instances for the specified profile.
+            Displays instance information in a vertical format. The default
+            instance (if set) will be marked.
+
+    add     Add a new named EC2 instance to the configuration. Queries AWS for
+            instances matching the filter, allows selection, and prompts for a name.
+            The instance name can also be provided via the --name flag.
+
+    remove  Remove a named instance from the configuration. Prompts for
+            confirmation before removal. The instance name can be provided via
+            the --name flag or will be prompted interactively.
 
 OPTIONS:
     --profile, -p    AWS CLI profile to use
+    --name, -n       Instance name (for add and remove commands)
+
+FIND COMMAND:
+    Finds EC2 instances whose Name tag contains the specified filter string.
+    Displays instance ID and name for each matching instance. If exactly one
+    instance is found (and it's not a bastion), it is automatically saved as
+    the default instance for the profile.
+
+LIST COMMAND:
+    Lists all configured instances for the specified profile in a vertical format,
+    showing name, instance ID, profile, and host for each instance. The default
+    instance (if set) will be marked with "(default)".
+
+ADD COMMAND:
+    Provides an interactive interface to add a new named instance:
+    1. Queries AWS for EC2 instances matching the filter string
+    2. Displays available instances for selection
+    3. Prompts for instance name (or uses --name flag if provided)
+    4. Saves the instance configuration
+
+REMOVE COMMAND:
+    Removes a named instance from the configuration:
+    1. Prompts for instance name (or uses --name flag if provided)
+    2. Displays instance information
+    3. Asks for confirmation before removal
+    4. Clears default instance if the removed instance was the default
 
 ARGUMENTS:
-    filter prefix    Prefix to match against instance Name tags
+    filter string    String to match against instance Name tags (contains match)
 
