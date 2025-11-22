@@ -158,7 +158,6 @@ func findInstances(args []string, config *Configuration) error {
 		profileInfo.Instance = instanceID
 
 		config.Profiles[currentProfile] = profileInfo
-		config.IsDirty = true
 	}
 
 	for i := range len(instanceList) {
@@ -188,6 +187,7 @@ func listInstances(args []string, config *Configuration) error {
 	// List all instances across all profiles
 	if config.Profiles == nil {
 		fmt.Println("\nNo instances configured.")
+		fmt.Println()
 		return nil
 	}
 
@@ -227,9 +227,9 @@ func listInstances(args []string, config *Configuration) error {
 
 	if !hasInstances {
 		fmt.Println("\nNo instances configured.")
-	} else {
-		fmt.Println()
 	}
+
+	fmt.Println()
 
 	return nil
 }
@@ -350,7 +350,6 @@ func addInstance(args []string, config *Configuration) error {
 	profileInfo.Instances[targetInstanceName] = newInstance
 	profileInfo.Name = currentProfile
 	config.Profiles[currentProfile] = profileInfo
-	config.IsDirty = true
 
 	fmt.Printf("\nInstance '%s' (ID: %s) added successfully!\n", targetInstanceName, selectedInstance.Instance)
 
@@ -439,7 +438,6 @@ func removeInstance(args []string, config *Configuration) error {
 	// Update profile in config
 	profileInfo.Name = currentProfile
 	config.Profiles[currentProfile] = profileInfo
-	config.IsDirty = true
 
 	fmt.Printf("\nInstance '%s' removed successfully!\n", targetInstanceName)
 
@@ -474,8 +472,6 @@ func ensureProfile(config *Configuration, profile *string, profileShort *string)
 				Instances: make(map[string]Instance),
 			}
 		}
-
-		config.IsDirty = true
 	} else if len(config.DefaultProfile) == 0 {
 		return "", fmt.Errorf("must specify the target profile")
 	}

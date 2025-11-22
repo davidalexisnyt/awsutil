@@ -264,8 +264,6 @@ func addBastion(args []string, config *Configuration) error {
 		Name:    bastionName,
 	}
 
-	config.IsDirty = true
-
 	fmt.Printf("\nBastion '%s' (ID: %s) configured successfully!\n", bastionName, bastionID)
 
 	return nil
@@ -467,8 +465,6 @@ func updateBastion(args []string, config *Configuration) error {
 		Profile: currentProfile,
 		Name:    targetBastionName,
 	}
-
-	config.IsDirty = true
 
 	fmt.Printf("\nBastion '%s' (ID: %s) updated successfully!\n", targetBastionName, existingBastionID)
 
@@ -795,7 +791,6 @@ func removeBastion(args []string, config *Configuration) error {
 	// Update profile in config
 	profileInfo.Name = currentProfile
 	config.Profiles[currentProfile] = profileInfo
-	config.IsDirty = true
 
 	fmt.Printf("\nBastion '%s' removed successfully!\n", targetBastionName)
 

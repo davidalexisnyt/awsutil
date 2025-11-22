@@ -10,7 +10,6 @@ type Configuration struct {
 	DefaultProfile string                   `json:"defaultProfile,omitempty"`
 	Profiles       map[string]Profile       `json:"profiles,omitempty"`
 	BastionLookup  map[string]BastionLookup `json:"-"` // Map of bastion ID to profile and name
-	IsDirty        bool                     `json:"-"` // Indicates unsaved changes
 }
 
 type BastionLookup struct {
@@ -135,8 +134,6 @@ func loadConfiguration(fileName string) (Configuration, error) {
 		}
 	}
 
-	config.IsDirty = false
-
 	return config, nil
 }
 
@@ -186,18 +183,12 @@ func migrateBastionConfig(config *Configuration) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func saveConfiguration(fileName string, config *Configuration, options ...string) {
-	if !config.IsDirty {
-		return
-	}
-
 	// Rebuild BastionLookup map before saving
 	rebuildBastionLookup(config)
 
 	// Save the configuration file
 	configBytes, _ := json.MarshalIndent(config, "", "    ")
 	os.WriteFile(fileName, configBytes, 0644)
-
-	config.IsDirty = false
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
