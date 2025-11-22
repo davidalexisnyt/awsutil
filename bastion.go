@@ -28,6 +28,7 @@ func listBastions(args []string, config *Configuration) error {
 	// List all bastions across all profiles
 	if config.Profiles == nil {
 		fmt.Println("\nNo bastions configured.")
+		fmt.Println()
 		return nil
 	}
 
@@ -70,9 +71,9 @@ func listBastions(args []string, config *Configuration) error {
 
 	if !hasBastions {
 		fmt.Println("\nNo bastions configured.")
-	} else {
-		fmt.Println()
 	}
+
+	fmt.Println()
 
 	return nil
 }

@@ -210,6 +210,7 @@ func listInstances(args []string, config *Configuration) error {
 		if len(profileInfo.Instances) > 0 {
 			hasInstances = true
 			fmt.Printf("\nInstances for profile '%s':\n", profileName)
+
 			for name, instance := range profileInfo.Instances {
 				defaultMarker := ""
 
@@ -217,7 +218,8 @@ func listInstances(args []string, config *Configuration) error {
 					defaultMarker = " (default)"
 				}
 
-				fmt.Printf("\n  Name:    %s%s\n", name, defaultMarker)
+				fmt.Println()
+				fmt.Printf("  Name:    %s%s\n", name, defaultMarker)
 				fmt.Printf("  ID:      %s\n", instance.ID)
 				fmt.Printf("  Profile: %s\n", instance.Profile)
 				fmt.Printf("  Host:    %s\n", instance.Host)
