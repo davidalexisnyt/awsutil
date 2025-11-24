@@ -102,6 +102,8 @@ func main() {
 	case "repl":
 		startREPL(configFile, &config)
 		return
+	case "init":
+		err = initCommand(&config)
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'awsdo help' to see available commands.")

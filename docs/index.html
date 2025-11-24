@@ -35,6 +35,11 @@
 
         <ul>
           <li>
+            <strong>Easy Initialization</strong>: Automated setup of AWS CLI,
+            SSM plugin, and AWS SSO profile configuration via the
+            <code>init</code> command
+          </li>
+          <li>
             <strong>AWS SSO Login</strong>: Simplified login with automatic
             profile management
           </li>
@@ -72,6 +77,13 @@
           AWS CLI and the SSM plugin are installed and available in your PATH.
         </p>
 
+        <p>
+          <strong>New users</strong>: You can use the <code>init</code> command
+          to automatically set up AWS CLI, SSM plugin, and configure your first
+          AWS SSO profile. See the <a href="#initial-setup">Initial Setup</a>
+          section below.
+        </p>
+
         <h2>Installation</h2>
 
         <p>
@@ -101,8 +113,8 @@
         </p>
 
         <p>
-          You should now have an executable (<code>awsdo.exe</code> if you're
-          on Windows, <code>awsdo</code> otherwise).
+          You should now have an executable (<code>awsdo.exe</code> if you're on
+          Windows, <code>awsdo</code> otherwise).
         </p>
 
         <h3>Step 2: Copy/move to a convenient location</h3>
@@ -119,6 +131,10 @@
         <p>The tool provides the following commands:</p>
 
         <ul>
+          <li>
+            <code>init</code> - Initialize AWS CLI, SSM plugin, and AWS SSO
+            profile setup
+          </li>
           <li><code>login</code> - Log in to AWS SSO</li>
           <li>
             <code>instances</code> - Manage EC2 instances (find, list, add,
@@ -157,6 +173,74 @@
 
         <h2>Usage</h2>
 
+        <h3 id="initial-setup">Initial Setup</h3>
+
+        <p>
+          If you're setting up <code>awsdo</code> for the first time, the
+          <code>init</code> command will help you get everything configured:
+        </p>
+
+        <pre><code class="language-shell">awsdo init</code></pre>
+
+        <p>This command will:</p>
+
+        <ol>
+          <li>
+            <strong>Check prerequisites</strong>: Verify if AWS CLI and SSM
+            plugin are installed
+          </li>
+          <li>
+            <strong>Install AWS CLI</strong> (if missing):
+            <ul>
+              <li>
+                On Windows: Uses winget if available, otherwise provides manual
+                installation instructions
+              </li>
+              <li>
+                On macOS: Uses Homebrew if available, otherwise provides manual
+                installation instructions
+              </li>
+              <li>
+                On Linux: Detects and uses your package manager (apt, yum, dnf,
+                zypper), otherwise provides manual instructions
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Install SSM Plugin</strong> (if missing):
+            <ul>
+              <li>
+                Automatically installs via package managers when available
+              </li>
+              <li>Provides manual installation guidance when needed</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Set up your first AWS SSO profile</strong>:
+            <ul>
+              <li>
+                Guides you through entering your SSO start URL, region, account
+                ID, and role name
+              </li>
+              <li>Creates the profile in your AWS config file</li>
+              <li>Tests the profile configuration</li>
+            </ul>
+          </li>
+        </ol>
+
+        <p>
+          The <code>init</code> command uses a hybrid approach: it will
+          automatically install components via package managers when available,
+          but will guide you through manual installation if package managers
+          aren't detected. This ensures the command works across different
+          system configurations.
+        </p>
+
+        <p>
+          After running <code>init</code>, you're ready to start using
+          <code>awsdo</code> commands!
+        </p>
+
         <h3>Logging in to AWS</h3>
 
         <p>
@@ -172,15 +256,17 @@
         <pre><code class="language-shell">awsdo login -p dev</code></pre>
 
         <p>
-          But nothing is gained by using <code>awsdo</code> like this, so
-          let's simplify things by automatically taking care of some
-          housekeeping under the hood.
+          But nothing is gained by using <code>awsdo</code> like this, so let's
+          simplify things by automatically taking care of some housekeeping
+          under the hood.
         </p>
 
         <ul>
           <li>
             Once a profile is used with a command, it becomes the default for
-            further commands. e.g. If we login using the dev profile (<code>awsdo login -p dev</code>), the <code>dev</code> profile becomes the default for other
+            further commands. e.g. If we login using the dev profile (<code
+              >awsdo login -p dev</code
+            >), the <code>dev</code> profile becomes the default for other
             commands like <code>awsdo instances find</code> or even when you
             need to login again later, <code>awsdo login</code> will log in
             using the <code>dev</code> profile since it was the last one we
@@ -199,8 +285,8 @@
           </li>
           <li>
             Heck, we don't even need to ever run the
-            <code>awsdo login</code> command if we don't want to, since ...
-            see the previous bullet point.
+            <code>awsdo login</code> command if we don't want to, since ... see
+            the previous bullet point.
           </li>
         </ul>
 
@@ -252,8 +338,8 @@
 
         <p>
           If exactly one instance is found (and it's not a bastion),
-          <code>awsdo</code> automatically saves it as the default instance
-          for the profile.
+          <code>awsdo</code> automatically saves it as the default instance for
+          the profile.
         </p>
 
         <h4>Listing Configured Instances</h4>
@@ -321,9 +407,9 @@
           <p>
             <strong>NOTE:</strong> You should notice a new file called
             <code>awsdo_config.json</code> in the same location as the
-            <code>awsdo</code> executable after running the commands we've
-            gone over so far. Take a look at the file if you're curious to see
-            how <code>awsdo</code> keeps track of things.
+            <code>awsdo</code> executable after running the commands we've gone
+            over so far. Take a look at the file if you're curious to see how
+            <code>awsdo</code> keeps track of things.
           </p>
         </blockquote>
 
@@ -338,8 +424,8 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>
           Not as bad as the instance query command, but still too complicated.
-          We have better things to do with our time. With <code>awsdo</code>,
-          we can connect in several ways:
+          We have better things to do with our time. With <code>awsdo</code>, we
+          can connect in several ways:
         </p>
 
         <h4>Using the Default Instance</h4>
@@ -404,8 +490,8 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         </p>
 
         <p>
-          Again, the theme with <code>awsdo</code> is to remember the context
-          of what we were doing so it can save us time and effort.
+          Again, the theme with <code>awsdo</code> is to remember the context of
+          what we were doing so it can save us time and effort.
         </p>
 
         <h3>Database Bastions</h3>
@@ -662,10 +748,10 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         <h3>Interactive REPL Mode</h3>
 
         <p>
-          <code>awsdo</code> includes an interactive REPL (Read-Eval-Print
-          Loop) mode that provides a convenient shell-like interface for
-          executing commands. This is especially useful when you need to run
-          multiple commands in sequence.
+          <code>awsdo</code> includes an interactive REPL (Read-Eval-Print Loop)
+          mode that provides a convenient shell-like interface for executing
+          commands. This is especially useful when you need to run multiple
+          commands in sequence.
         </p>
 
         <h4>Starting the REPL</h4>
@@ -745,9 +831,9 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           If we try to issue an AWS CLI command without first logging in, or
           after our session has expired, we would get a rude response. We would
           then need to log in and re-attempt our previous command. This is
-          simplified with <code>awsdo</code>. If is detects that we don't have
-          a valid authentication session, it will log in with our default
-          profile before executing the command.
+          simplified with <code>awsdo</code>. If is detects that we don't have a
+          valid authentication session, it will log in with our default profile
+          before executing the command.
         </p>
 
         <p>So using:</p>
@@ -783,11 +869,11 @@ awsdo terminal myinstance</code></pre>
 
         <p>
           Let's simplify even further. If the filter we supply for the
-          <code>awsdo instances find</code> command results in just one
-          instance being returned, <code>awsdo</code> will save that instance
-          as your default. Let's try it. First, delete the
-          <code>awsdo_config.json</code> file so we're sure we have no
-          defaults saved. Then do something like this, where the
+          <code>awsdo instances find</code> command results in just one instance
+          being returned, <code>awsdo</code> will save that instance as your
+          default. Let's try it. First, delete the
+          <code>awsdo_config.json</code> file so we're sure we have no defaults
+          saved. Then do something like this, where the
           <em>filter</em> parameter ensures that we get just one instance back:
         </p>
 
@@ -810,7 +896,9 @@ awsdo terminal</code></pre>
 
         <p>For detailed help on a specific command:</p>
 
-        <pre><code class="language-shell">awsdo help bastion
+        <pre><code class="language-shell">awsdo help init
+awsdo help login
+awsdo help bastion
 awsdo help bastions
 awsdo help bastions list
 awsdo help bastions add
@@ -825,8 +913,8 @@ awsdo help terminal
 # etc.</code></pre>
 
         <p>
-          In addition to these help topics, <code>awsdo</code> also displays
-          the full documentation (this file):
+          In addition to these help topics, <code>awsdo</code> also displays the
+          full documentation (this file):
         </p>
 
         <pre><code class="language-shell">awsdo docs</code></pre>

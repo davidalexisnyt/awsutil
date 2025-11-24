@@ -4,6 +4,7 @@ USAGE:
     awsdo <command> [options]
 
 COMMANDS:
+    init        Initialize AWS CLI, SSM plugin, and AWS SSO profile
     login       Log in to AWS SSO
     instances   Manage EC2 instances (find, list, add, remove)
     terminal    Start an SSM terminal session to an EC2 instance

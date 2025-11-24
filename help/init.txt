@@ -1,0 +1,30 @@
+awsdo init - Initialize AWS CLI, SSM plugin, and AWS SSO profile
+
+DESCRIPTION:
+    The init command helps you set up AWS CLI, SSM plugin, and configure your
+    first AWS SSO profile. It performs prerequisite checks and guides you
+    through the installation process if needed.
+
+    The command will:
+    - Check if AWS CLI is installed and accessible
+    - Check if SSM plugin is installed and accessible
+    - Check if AWS profiles are configured
+    - Install missing components (when possible via package managers)
+    - Guide you through setting up your first AWS SSO profile
+
+USAGE:
+    awsdo init
+
+EXAMPLES:
+    awsdo init
+        Run the initialization wizard to set up AWS CLI, SSM plugin, and
+        configure your first AWS SSO profile.
+
+NOTES:
+    - On Windows, the command will try to use Winget if available
+    - On macOS, the command will try to use Homebrew if available
+    - On Linux, the command will try to use apt, yum, dnf, or zypper if available
+    - If package managers are not available, you will be guided through manual
+      installation steps
+    - You will need SSO information from your AWS administrator to set up a profile
+

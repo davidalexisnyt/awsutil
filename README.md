@@ -8,6 +8,7 @@ Thus, the `awsdo` tool was born. The aim is to have the tool minimize the amount
 
 ## Features
 
+- **Easy Initialization**: Automated setup of AWS CLI, SSM plugin, and AWS SSO profile configuration via the `init` command
 - **AWS SSO Login**: Simplified login with automatic profile management
 - **EC2 Instance Discovery**: Quickly find and list EC2 instances by name pattern
 - **SSM Terminal Sessions**: One-command terminal access to EC2 instances
@@ -27,6 +28,8 @@ Thus, the `awsdo` tool was born. The aim is to have the tool minimize the amount
 ## Prerequisites
 
 This tool automates calls to the AWS CLI, so please ensure that the AWS CLI and the SSM plugin are installed and available in your PATH.
+
+**New users**: You can use the `init` command to automatically set up AWS CLI, SSM plugin, and configure your first AWS SSO profile. See the [Initial Setup](#initial-setup) section below.
 
 ## Installation
 
@@ -52,6 +55,7 @@ It's a good practice to have a `bin` folder in your user home folder that's also
 
 The tool provides the following commands:
 
+- `init` - Initialize AWS CLI, SSM plugin, and AWS SSO profile setup
 - `login` - Log in to AWS SSO
 - `instances` - List EC2 instances matching a filter
 - `terminal` - Start an SSM terminal session to an EC2 instance
@@ -67,6 +71,33 @@ awsdo help <command>
 ```
 
 ## Usage
+
+### Initial Setup
+
+If you're setting up `awsdo` for the first time, the `init` command will help you get everything configured:
+
+```shell
+awsdo init
+```
+
+This command will:
+
+1. **Check prerequisites**: Verify if AWS CLI and SSM plugin are installed
+2. **Install AWS CLI** (if missing):
+   - On Windows: Uses winget if available, otherwise provides manual installation instructions
+   - On macOS: Uses Homebrew if available, otherwise provides manual installation instructions
+   - On Linux: Detects and uses your package manager (apt, yum, dnf, zypper), otherwise provides manual instructions
+3. **Install SSM Plugin** (if missing):
+   - Automatically installs via package managers when available
+   - Provides manual installation guidance when needed
+4. **Set up your first AWS SSO profile**:
+   - Guides you through entering your SSO start URL, region, account ID, and role name
+   - Creates the profile in your AWS config file
+   - Tests the profile configuration
+
+The `init` command uses a hybrid approach: it will automatically install components via package managers when available, but will guide you through manual installation if package managers aren't detected. This ensures the command works across different system configurations.
+
+After running `init`, you're ready to start using `awsdo` commands!
 
 ### Logging in to AWS
 
@@ -343,12 +374,19 @@ awsdo help
 For detailed help on a specific command:
 
 ```shell
+awsdo help init
+awsdo help login
 awsdo help bastion
 awsdo help bastions
 awsdo help bastions list
 awsdo help bastions add
 awsdo help bastions update
 awsdo help bastions remove
+awsdo help instances
+awsdo help instances find
+awsdo help instances list
+awsdo help instances add
+awsdo help instances remove
 awsdo help terminal
 # etc.
 ```

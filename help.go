@@ -16,6 +16,9 @@ import (
 //go:embed help/general.txt
 var helpGeneral string
 
+//go:embed help/init.txt
+var helpInit string
+
 //go:embed help/login.txt
 var helpLogin string
 
@@ -128,6 +131,8 @@ func showHelp(command string) {
 
 	// Command-specific help
 	switch command {
+	case "init":
+		fmt.Print(helpInit)
 	case "login":
 		fmt.Print(helpLogin)
 	case "instances":
