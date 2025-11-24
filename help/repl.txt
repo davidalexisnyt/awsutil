@@ -1,12 +1,12 @@
-awsutil repl - Start interactive REPL mode
+awsdo repl - Start interactive REPL mode
 
 USAGE:
-    awsutil repl
+    awsdo repl
 
 DESCRIPTION:
     Starts an interactive REPL (Read-Eval-Print Loop) mode that provides a
-    convenient shell-like interface for executing awsutil commands. In REPL
-    mode, you can type commands directly without the 'awsutil' prefix, and
+    convenient shell-like interface for executing awsdo commands. In REPL
+    mode, you can type commands directly without the 'awsdo' prefix, and
     the configuration is automatically saved after each successful command.
 
 FEATURES:
@@ -17,7 +17,7 @@ FEATURES:
     - Built-in help system
 
 COMMANDS:
-    All standard awsutil commands are available in REPL mode:
+    All standard awsdo commands are available in REPL mode:
     - login
     - instances (find, list/ls, add, update, remove/rm)
     - terminal
@@ -47,7 +47,7 @@ KEYBOARD SHORTCUTS:
 
 EXAMPLES:
     Start REPL:
-        awsutil repl
+        awsdo repl
 
     In REPL mode:
         >>> login -p dev
@@ -65,5 +65,5 @@ NOTES:
     - Empty lines are ignored.
     - The prompt is displayed in green (>>>) to indicate REPL mode.
     - All commands work exactly the same as in normal mode, just without
-      the 'awsutil' prefix.
+      the 'awsdo' prefix.
 

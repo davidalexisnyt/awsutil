@@ -1,12 +1,12 @@
-awsutil instances - Manage EC2 instances
+awsdo instances - Manage EC2 instances
 
 USAGE:
-    awsutil instances find [--profile <aws cli profile>] <filter string>
-    awsutil instances list [--profile <aws cli profile>]
-    awsutil instances ls [--profile <aws cli profile>]
-    awsutil instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>
-    awsutil instances remove [--profile <aws cli profile>] [--name <instance name>]
-    awsutil instances rm [--profile <aws cli profile>] [--name <instance name>]
+    awsdo instances find [--profile <aws cli profile>] <filter string>
+    awsdo instances list [--profile <aws cli profile>]
+    awsdo instances ls [--profile <aws cli profile>]
+    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>
+    awsdo instances remove [--profile <aws cli profile>] [--name <instance name>]
+    awsdo instances rm [--profile <aws cli profile>] [--name <instance name>]
 
 DESCRIPTION:
     The instances command provides subcommands to find and manage EC2 instances.

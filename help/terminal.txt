@@ -1,10 +1,10 @@
-awsutil terminal - Start an SSM terminal session to an EC2 instance
+awsdo terminal - Start an SSM terminal session to an EC2 instance
 
 USAGE:
-    awsutil terminal [--profile <aws cli profile>] [<instance name>]
-    awsutil terminal [--profile <aws cli profile>] [--host <instance host>]
-    awsutil terminal [-p <aws cli profile>] [<instance name>]
-    awsutil terminal [-p <aws cli profile>] [-h <instance host>]
+    awsdo terminal [--profile <aws cli profile>] [<instance name>]
+    awsdo terminal [--profile <aws cli profile>] [--host <instance host>]
+    awsdo terminal [-p <aws cli profile>] [<instance name>]
+    awsdo terminal [-p <aws cli profile>] [-h <instance host>]
 
 DESCRIPTION:
     Starts an AWS Systems Manager (SSM) terminal session to an EC2 instance.
@@ -14,17 +14,17 @@ DESCRIPTION:
     Automatically logs in if session has expired.
 
 EXAMPLES:
-    awsutil terminal
+    awsdo terminal
         Connects to the default instance of the default profile.
 
-    awsutil terminal -p myprofile
+    awsdo terminal -p myprofile
         Connects to the default instance of the specified profile.
 
-    awsutil terminal myinstance
+    awsdo terminal myinstance
         Connects to the named instance. Searches default profile first,
         then all profiles if not found.
 
-    awsutil terminal -h 10.0.1.5
+    awsdo terminal -h 10.0.1.5
         Connects to the instance with the specified host value. Searches
         default profile first, then all profiles if not found.
 

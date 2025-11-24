@@ -1,7 +1,7 @@
-awsutil - AWS CLI wrapper utility
+awsdo - AWS CLI wrapper utility
 
 USAGE:
-    awsutil <command> [options]
+    awsdo <command> [options]
 
 COMMANDS:
     login       Log in to AWS SSO
@@ -14,5 +14,5 @@ COMMANDS:
     help        Show help information
 
 For detailed help on a specific command, use:
-    awsutil help <command>
+    awsdo help <command>
 

@@ -19,8 +19,8 @@ func startSSMSession(args []string, config *Configuration) error {
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:")
-		fmt.Println("    awsutil terminal [--profile <aws cli profile>] [<instance name>]")
-		fmt.Println("    awsutil terminal [--profile <aws cli profile>] [--host <instance host>]")
+		fmt.Println("    awsdo terminal [--profile <aws cli profile>] [<instance name>]")
+		fmt.Println("    awsdo terminal [--profile <aws cli profile>] [--host <instance host>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {

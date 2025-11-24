@@ -19,7 +19,7 @@ func listBastions(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil bastions list [--profile <aws cli profile>]")
+		fmt.Println("USAGE:\n    awsdo bastions list [--profile <aws cli profile>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -87,7 +87,7 @@ func addBastion(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil bastions add [--profile <aws cli profile>]")
+		fmt.Println("USAGE:\n    awsdo bastions add [--profile <aws cli profile>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -280,7 +280,7 @@ func updateBastion(args []string, config *Configuration) error {
 	bastionName := flagSet.String("name", "", "--name <bastion name>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil bastions update [--profile <aws cli profile>] [--name <bastion name>]")
+		fmt.Println("USAGE:\n    awsdo bastions update [--profile <aws cli profile>] [--name <bastion name>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -487,7 +487,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:")
-		fmt.Println("    awsutil bastion [--profile <aws cli profile>] [--name <bastion name>]")
+		fmt.Println("    awsdo bastion [--profile <aws cli profile>] [--name <bastion name>]")
 		fmt.Println("                    [--instance <instance id>] [--host <remote host>]")
 		fmt.Println("                    [--port <remote port>] [--local <local port>]")
 	}
@@ -740,7 +740,7 @@ func removeBastion(args []string, config *Configuration) error {
 	bastionNameShort := flagSet.String("n", "", "--name <bastion name>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil bastions remove [--profile <aws cli profile>] [--name <bastion name>]")
+		fmt.Println("USAGE:\n    awsdo bastions remove [--profile <aws cli profile>] [--name <bastion name>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {

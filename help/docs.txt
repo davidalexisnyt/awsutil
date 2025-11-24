@@ -1,7 +1,7 @@
-awsutil docs - Display the full documentation
+awsdo docs - Display the full documentation
 
 USAGE:
-    awsutil docs
+    awsdo docs
 
 DESCRIPTION:
     Displays the complete application documentation in your default browser.

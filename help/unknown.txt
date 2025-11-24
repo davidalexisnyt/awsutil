@@ -3,6 +3,6 @@ Unknown command: %s
 Available commands:
     login, instances, terminal, bastion, bastions, configure, docs, help
 
-Use 'awsutil help' to see general help.
+Use 'awsdo help' to see general help.
 
 

@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AWSUTIL - AWS CLI Automation Tool</title>
+    <title>AWSDO - AWS CLI Automation Tool</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container">
       <header>
-        <h1>AWSUTIL</h1>
+        <h1>AWSDO</h1>
       </header>
 
       <main>
@@ -26,7 +26,7 @@
         </p>
 
         <p>
-          Thus, the <code>awsutil</code> tool was born. The aim is to have the
+          Thus, the <code>awsdo</code> tool was born. The aim is to have the
           tool minimize the amount of typing, "learn" your most common settings,
           and generally just help get the job done and get out of the way.
         </p>
@@ -101,8 +101,8 @@
         </p>
 
         <p>
-          You should now have an executable (<code>awsutil.exe</code> if you're
-          on Windows, <code>awsutil</code> otherwise).
+          You should now have an executable (<code>awsdo.exe</code> if you're
+          on Windows, <code>awsdo</code> otherwise).
         </p>
 
         <h3>Step 2: Copy/move to a convenient location</h3>
@@ -142,7 +142,7 @@
           </li>
           <li>
             <code>help</code> - Show help information (use
-            <code>awsutil help &lt;command&gt;</code> for detailed help)
+            <code>awsdo help &lt;command&gt;</code> for detailed help)
           </li>
           <li>
             <code>docs</code> - Displays the application documentation
@@ -153,7 +153,7 @@
 
         <p>For detailed help on any command, use:</p>
 
-        <pre><code class="language-shell">awsutil help &lt;command&gt;</code></pre>
+        <pre><code class="language-shell">awsdo help &lt;command&gt;</code></pre>
 
         <h2>Usage</h2>
 
@@ -167,12 +167,12 @@
 
         <pre><code class="language-shell">aws sso login --profile dev</code></pre>
 
-        <p>We can do the same thing with <code>awsutil</code>:</p>
+        <p>We can do the same thing with <code>awsdo</code>:</p>
 
-        <pre><code class="language-shell">awsutil login -p dev</code></pre>
+        <pre><code class="language-shell">awsdo login -p dev</code></pre>
 
         <p>
-          But nothing is gained by using <code>awsutil</code> like this, so
+          But nothing is gained by using <code>awsdo</code> like this, so
           let's simplify things by automatically taking care of some
           housekeeping under the hood.
         </p>
@@ -180,20 +180,18 @@
         <ul>
           <li>
             Once a profile is used with a command, it becomes the default for
-            further commands. e.g. If we login using the dev profile (<code
-              >awsutil login -p dev</code
-            >), the <code>dev</code> profile becomes the default for other
-            commands like <code>awsutil instances find</code> or even when you
-            need to login again later, <code>awsutil login</code> will log in
+            further commands. e.g. If we login using the dev profile (<code>awsdo login -p dev</code>), the <code>dev</code> profile becomes the default for other
+            commands like <code>awsdo instances find</code> or even when you
+            need to login again later, <code>awsdo login</code> will log in
             using the <code>dev</code> profile since it was the last one we
             used.
           </li>
           <li>
             There is no need to log in before using another command.
-            <code>awsutil</code> will see that we're not currently logged in and
+            <code>awsdo</code> will see that we're not currently logged in and
             will perform the login process before the command that was run. e.g.
-            Let's say we run <code>awsutil instances find myapp</code> without
-            first running <code>awsutil login</code>, we'll first see the AWS
+            Let's say we run <code>awsdo instances find myapp</code> without
+            first running <code>awsdo login</code>, we'll first see the AWS
             login page get launched. Once authentication is done, the
             <code>instances find</code> command will be run, listing any
             existing instances with names containing "myapp" (we'll go deeper
@@ -201,7 +199,7 @@
           </li>
           <li>
             Heck, we don't even need to ever run the
-            <code>awsutil login</code> command if we don't want to, since ...
+            <code>awsdo login</code> command if we don't want to, since ...
             see the previous bullet point.
           </li>
         </ul>
@@ -229,17 +227,17 @@
 
         <p>
           There's no way that anyone will remember this. So let's simplify the
-          process with awsutil:
+          process with awsdo:
         </p>
 
-        <pre><code class="language-shell">awsutil instances find --profile dev example</code></pre>
+        <pre><code class="language-shell">awsdo instances find --profile dev example</code></pre>
 
         <p>
           But wait... <code>dev</code> was already set as our default profile
           from our previous commands, so we can just use:
         </p>
 
-        <pre><code class="language-shell">awsutil instances find example</code></pre>
+        <pre><code class="language-shell">awsdo instances find example</code></pre>
 
         <p>This will print out something like this:</p>
 
@@ -254,7 +252,7 @@
 
         <p>
           If exactly one instance is found (and it's not a bastion),
-          <code>awsutil</code> automatically saves it as the default instance
+          <code>awsdo</code> automatically saves it as the default instance
           for the profile.
         </p>
 
@@ -262,15 +260,15 @@
 
         <p>To view all configured named instances:</p>
 
-        <pre><code class="language-shell">awsutil instances list</code></pre>
+        <pre><code class="language-shell">awsdo instances list</code></pre>
 
         <p>Or use the shortcut:</p>
 
-        <pre><code class="language-shell">awsutil instances ls</code></pre>
+        <pre><code class="language-shell">awsdo instances ls</code></pre>
 
         <p>Or filter by a specific profile:</p>
 
-        <pre><code class="language-shell">awsutil instances list -p dev</code></pre>
+        <pre><code class="language-shell">awsdo instances list -p dev</code></pre>
 
         <p>
           This displays all configured instances, showing name, instance ID,
@@ -282,11 +280,11 @@
 
         <p>To add a new named instance to your configuration:</p>
 
-        <pre><code class="language-shell">awsutil instances add -p dev example</code></pre>
+        <pre><code class="language-shell">awsdo instances add -p dev example</code></pre>
 
         <p>Or with a pre-specified name:</p>
 
-        <pre><code class="language-shell">awsutil instances add -p dev -n myapp example</code></pre>
+        <pre><code class="language-shell">awsdo instances add -p dev -n myapp example</code></pre>
 
         <p>This command will:</p>
 
@@ -304,15 +302,15 @@
 
         <p>To remove a named instance:</p>
 
-        <pre><code class="language-shell">awsutil instances remove -p dev -n myapp</code></pre>
+        <pre><code class="language-shell">awsdo instances remove -p dev -n myapp</code></pre>
 
         <p>Or use the shortcut:</p>
 
-        <pre><code class="language-shell">awsutil instances rm -p dev -n myapp</code></pre>
+        <pre><code class="language-shell">awsdo instances rm -p dev -n myapp</code></pre>
 
         <p>Or simply:</p>
 
-        <pre><code class="language-shell">awsutil instances remove -p dev</code></pre>
+        <pre><code class="language-shell">awsdo instances remove -p dev</code></pre>
 
         <p>
           The command will prompt for the instance name if not provided, display
@@ -322,10 +320,10 @@
         <blockquote>
           <p>
             <strong>NOTE:</strong> You should notice a new file called
-            <code>awsutil_config.json</code> in the same location as the
-            <code>awsutil</code> executable after running the commands we've
+            <code>awsdo_config.json</code> in the same location as the
+            <code>awsdo</code> executable after running the commands we've
             gone over so far. Take a look at the file if you're curious to see
-            how <code>awsutil</code> keeps track of things.
+            how <code>awsdo</code> keeps track of things.
           </p>
         </blockquote>
 
@@ -340,7 +338,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>
           Not as bad as the instance query command, but still too complicated.
-          We have better things to do with our time. With <code>awsutil</code>,
+          We have better things to do with our time. With <code>awsdo</code>,
           we can connect in several ways:
         </p>
 
@@ -348,14 +346,14 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>The simplest way is to use the default instance:</p>
 
-        <pre><code class="language-shell">awsutil terminal</code></pre>
+        <pre><code class="language-shell">awsdo terminal</code></pre>
 
         <p>
           This connects to the default instance of the default profile. You can
           also specify a profile:
         </p>
 
-        <pre><code class="language-shell">awsutil terminal -p dev</code></pre>
+        <pre><code class="language-shell">awsdo terminal -p dev</code></pre>
 
         <p>This connects to the default instance of the specified profile.</p>
 
@@ -365,7 +363,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           You can connect to a named instance by providing the instance name:
         </p>
 
-        <pre><code class="language-shell">awsutil terminal myinstance</code></pre>
+        <pre><code class="language-shell">awsdo terminal myinstance</code></pre>
 
         <p>When using an instance name without specifying a profile:</p>
 
@@ -385,7 +383,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           search for the instance in the specified profile:
         </p>
 
-        <pre><code class="language-shell">awsutil terminal -p dev myinstance</code></pre>
+        <pre><code class="language-shell">awsdo terminal -p dev myinstance</code></pre>
 
         <h4>Using Host Lookup</h4>
 
@@ -394,11 +392,11 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           (IP address):
         </p>
 
-        <pre><code class="language-shell">awsutil terminal -h some-aws-host-stg-asg</code></pre>
+        <pre><code class="language-shell">awsdo terminal -h some-aws-host-stg-asg</code></pre>
 
         <p>Or with the long form:</p>
 
-        <pre><code class="language-shell">awsutil terminal --host some-aws-host-stg-asg</code></pre>
+        <pre><code class="language-shell">awsdo terminal --host some-aws-host-stg-asg</code></pre>
 
         <p>
           Similar to instance name lookup, if no profile is specified, it
@@ -406,7 +404,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         </p>
 
         <p>
-          Again, the theme with <code>awsutil</code> is to remember the context
+          Again, the theme with <code>awsdo</code> is to remember the context
           of what we were doing so it can save us time and effort.
         </p>
 
@@ -458,7 +456,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         </p>
 
         <p>
-          The <code>awsutil</code> bastion functionality supports multiple named
+          The <code>awsdo</code> bastion functionality supports multiple named
           bastion tunnels per AWS profile, making it easy to manage connections
           to different database services. This is handy for when there are
           different target databases you would like to access for different
@@ -470,19 +468,19 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>To view all configured bastions across all profiles:</p>
 
-        <pre><code class="language-shell">awsutil bastions list</code></pre>
+        <pre><code class="language-shell">awsdo bastions list</code></pre>
 
         <p>Or use the shortcut:</p>
 
-        <pre><code class="language-shell">awsutil bastions ls</code></pre>
+        <pre><code class="language-shell">awsdo bastions ls</code></pre>
 
         <p>Or simply:</p>
 
-        <pre><code class="language-shell">awsutil bastions</code></pre>
+        <pre><code class="language-shell">awsdo bastions</code></pre>
 
         <p>To filter by a specific profile:</p>
 
-        <pre><code class="language-shell">awsutil bastions list -p &lt;profile&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions list -p &lt;profile&gt;</code></pre>
 
         <p>This will display all configured bastions, showing:</p>
 
@@ -511,7 +509,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           <code>bastions add</code> command.
         </p>
 
-        <pre><code class="language-shell">awsutil bastions add -p &lt;profile&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions add -p &lt;profile&gt;</code></pre>
 
         <p>
           This command will do all the heavy lifting of running multiple AWS
@@ -521,7 +519,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         <ol>
           <li>
             If we're not already logged in to the specified profile,
-            <code>awsutil</code> will first go through the AWS authentication
+            <code>awsdo</code> will first go through the AWS authentication
             steps.
           </li>
           <li>
@@ -552,7 +550,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         </p>
 
         <p>
-          Now, if we run the <code>awsutils bastions list</code> command, we'll
+          Now, if we run the <code>awsdos bastions list</code> command, we'll
           see our new bastion in the list.
         </p>
 
@@ -563,15 +561,15 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           <code>bastions update</code> command:
         </p>
 
-        <pre><code class="language-shell">awsutil bastions update -p &lt;profile&gt; --name &lt;bastion-name&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions update -p &lt;profile&gt; --name &lt;bastion-name&gt;</code></pre>
 
         <p>Or use the shortcut:</p>
 
-        <pre><code class="language-shell">awsutil bastions up -p &lt;profile&gt; --name &lt;bastion-name&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions up -p &lt;profile&gt; --name &lt;bastion-name&gt;</code></pre>
 
         <p>Or simply:</p>
 
-        <pre><code class="language-shell">awsutil bastions update -p &lt;profile&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions update -p &lt;profile&gt;</code></pre>
 
         <p>
           This will prompt you for the bastion name if not provided, then guide
@@ -586,15 +584,15 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           <code>bastions remove</code> command:
         </p>
 
-        <pre><code class="language-shell">awsutil bastions remove -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions remove -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
 
         <p>Or use the shortcut:</p>
 
-        <pre><code class="language-shell">awsutil bastions rm -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions rm -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
 
         <p>Or simply:</p>
 
-        <pre><code class="language-shell">awsutil bastions remove -p &lt;profile&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastions remove -p &lt;profile&gt;</code></pre>
 
         <p>
           This will prompt you for the bastion name if not provided. The command
@@ -607,14 +605,14 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>Once configured, starting a bastion session is simple:</p>
 
-        <pre><code class="language-shell">awsutil bastion</code></pre>
+        <pre><code class="language-shell">awsdo bastion</code></pre>
 
         <p>
           This will use the default bastion on the default AWS profile. You can
           also specify the profile using the <code>-p</code> option:
         </p>
 
-        <pre><code class="language-shell">awsutil bastion -p &lt;profile&gt;</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p &lt;profile&gt;</code></pre>
 
         <p>This will start the default bastion under the specified profile.</p>
 
@@ -623,7 +621,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           name:
         </p>
 
-        <pre><code class="language-shell">awsutil bastion -p &lt;profile&gt; --name mybastion</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p &lt;profile&gt; --name mybastion</code></pre>
 
         <p><strong>Finding Bastions by Name Across Profiles</strong></p>
 
@@ -633,7 +631,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           with the <code>--name</code> option:
         </p>
 
-        <pre><code class="language-shell">awsutil bastion --name my-prod-db</code></pre>
+        <pre><code class="language-shell">awsdo bastion --name my-prod-db</code></pre>
 
         <p>When using <code>--name</code> without specifying a profile:</p>
 
@@ -654,17 +652,17 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           the specified profile:
         </p>
 
-        <pre><code class="language-shell">awsutil bastion -p dev --name my-db</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p dev --name my-db</code></pre>
 
         <p>
-          These options give us the flexibility to use <code>awsutil</code> in a
+          These options give us the flexibility to use <code>awsdo</code> in a
           way that matches our personal approach.
         </p>
 
         <h3>Interactive REPL Mode</h3>
 
         <p>
-          <code>awsutil</code> includes an interactive REPL (Read-Eval-Print
+          <code>awsdo</code> includes an interactive REPL (Read-Eval-Print
           Loop) mode that provides a convenient shell-like interface for
           executing commands. This is especially useful when you need to run
           multiple commands in sequence.
@@ -674,12 +672,12 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>To start the REPL:</p>
 
-        <pre><code class="language-shell">awsutil repl</code></pre>
+        <pre><code class="language-shell">awsdo repl</code></pre>
 
         <p>
           You'll see a green prompt (<code>&gt;&gt;&gt;</code>) indicating that
           you're in REPL mode. You can now type commands directly without the
-          <code>awsutil</code> prefix.
+          <code>awsdo</code> prefix.
         </p>
 
         <h4>REPL Features</h4>
@@ -737,7 +735,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>
           All commands work the same as in normal mode, but without needing to
-          type <code>awsutil</code> before each command. The REPL also
+          type <code>awsdo</code> before each command. The REPL also
           automatically saves your configuration after each successful command.
         </p>
 
@@ -747,30 +745,30 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           If we try to issue an AWS CLI command without first logging in, or
           after our session has expired, we would get a rude response. We would
           then need to log in and re-attempt our previous command. This is
-          simplified with <code>awsutil</code>. If is detects that we don't have
+          simplified with <code>awsdo</code>. If is detects that we don't have
           a valid authentication session, it will log in with our default
           profile before executing the command.
         </p>
 
         <p>So using:</p>
 
-        <pre><code>awsutil terminal</code></pre>
+        <pre><code>awsdo terminal</code></pre>
 
         <p>is the same as doing:</p>
 
-        <pre><code class="language-shell">awsutil login
-awsutil terminal</code></pre>
+        <pre><code class="language-shell">awsdo login
+awsdo terminal</code></pre>
 
         <h3>More Automatic Configuration Examples</h3>
 
         <p>
           What if you want to start an SSM session to an instance you already
-          know and this is the first time you're using <code>awsutil</code>? You
+          know and this is the first time you're using <code>awsdo</code>? You
           can add the instance to your configuration first, then connect:
         </p>
 
-        <pre><code class="language-shell">awsutil instances add -p dev -n myinstance example
-awsutil terminal myinstance</code></pre>
+        <pre><code class="language-shell">awsdo instances add -p dev -n myinstance example
+awsdo terminal myinstance</code></pre>
 
         <p>
           Or if you know the instance ID, you can still use it directly (for
@@ -778,23 +776,23 @@ awsutil terminal myinstance</code></pre>
           first. The profile and instance will automatically get saved, an SSO
           authentication session will be created, and you will be connected to
           the instance via an SSM terminal session. Then you'd simply use
-          <code>awsutil terminal</code> or
-          <code>awsutil terminal myinstance</code> to connect to the instance
+          <code>awsdo terminal</code> or
+          <code>awsdo terminal myinstance</code> to connect to the instance
           again later.
         </p>
 
         <p>
           Let's simplify even further. If the filter we supply for the
-          <code>awsutil instances find</code> command results in just one
-          instance being returned, <code>awsutil</code> will save that instance
+          <code>awsdo instances find</code> command results in just one
+          instance being returned, <code>awsdo</code> will save that instance
           as your default. Let's try it. First, delete the
-          <code>awsutil_config.json</code> file so we're sure we have no
+          <code>awsdo_config.json</code> file so we're sure we have no
           defaults saved. Then do something like this, where the
           <em>filter</em> parameter ensures that we get just one instance back:
         </p>
 
-        <pre><code class="language-shell">awsutil instances find --profile spg very-specific-prefix
-awsutil terminal</code></pre>
+        <pre><code class="language-shell">awsdo instances find --profile spg very-specific-prefix
+awsdo terminal</code></pre>
 
         <p>
           Both the profile and the resultant instance from the 1st command will
@@ -808,35 +806,35 @@ awsutil terminal</code></pre>
           commands:
         </p>
 
-        <pre><code class="language-shell">awsutil help</code></pre>
+        <pre><code class="language-shell">awsdo help</code></pre>
 
         <p>For detailed help on a specific command:</p>
 
-        <pre><code class="language-shell">awsutil help bastion
-awsutil help bastions
-awsutil help bastions list
-awsutil help bastions add
-awsutil help bastions update
-awsutil help bastions remove
-awsutil help instances
-awsutil help instances find
-awsutil help instances list
-awsutil help instances add
-awsutil help instances remove
-awsutil help terminal
+        <pre><code class="language-shell">awsdo help bastion
+awsdo help bastions
+awsdo help bastions list
+awsdo help bastions add
+awsdo help bastions update
+awsdo help bastions remove
+awsdo help instances
+awsdo help instances find
+awsdo help instances list
+awsdo help instances add
+awsdo help instances remove
+awsdo help terminal
 # etc.</code></pre>
 
         <p>
-          In addition to these help topics, <code>awsutil</code> also displays
+          In addition to these help topics, <code>awsdo</code> also displays
           the full documentation (this file):
         </p>
 
-        <pre><code class="language-shell">awsutil docs</code></pre>
+        <pre><code class="language-shell">awsdo docs</code></pre>
 
         <h2>Configuration File Format</h2>
 
         <p>
-          The configuration file (<code>awsutil_config.json</code>) is stored in
+          The configuration file (<code>awsdo_config.json</code>) is stored in
           the same directory as the executable. It supports:
         </p>
 

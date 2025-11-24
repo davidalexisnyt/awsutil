@@ -1,8 +1,8 @@
-awsutil login - Log in to AWS SSO
+awsdo login - Log in to AWS SSO
 
 USAGE:
-    awsutil login [--profile <aws cli profile>]
-    awsutil login [-p <aws cli profile>]
+    awsdo login [--profile <aws cli profile>]
+    awsdo login [-p <aws cli profile>]
 
 DESCRIPTION:
     Logs in to AWS SSO using the specified profile. If no profile is

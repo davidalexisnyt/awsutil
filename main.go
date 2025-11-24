@@ -2,7 +2,7 @@ package main
 
 /*
 	- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	awsutil
+	awsdo
 	Author: David Alexis
 
 	This application wraps calls to the AWS CLI to simplify certain key tasks, like logging in,
@@ -18,10 +18,12 @@ import (
 	"strings"
 )
 
+var Version = "0.1.0"
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func main() {
 	exePath, _ := os.Executable()
-	configFile := filepath.Join(filepath.Dir(exePath), "awsutil_config.json")
+	configFile := filepath.Join(filepath.Dir(exePath), "awsdo_config.json")
 
 	if len(os.Args) < 2 {
 		showHelp("")
@@ -65,7 +67,7 @@ func main() {
 				err = removeInstance(os.Args[3:], &config)
 			default:
 				fmt.Printf("Invalid instances subcommand: %s\n", subcommand)
-				fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances update' to update an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
+				fmt.Println("Use 'awsdo instances find' to find instances, 'awsdo instances list' to list configured instances, 'awsdo instances add' to add an instance, 'awsdo instances update' to update an instance, 'awsdo instances remove' to remove an instance, or 'awsdo help instances' for more information.")
 				os.Exit(1)
 			}
 		}
@@ -90,7 +92,7 @@ func main() {
 				err = removeBastion(os.Args[3:], &config)
 			default:
 				fmt.Printf("Invalid bastions subcommand: %s\n", subcommand)
-				fmt.Println("Use 'awsutil bastions list' to list bastions, 'awsutil bastions add' to add a new bastion, 'awsutil bastions update' to update an existing bastion, or 'awsutil bastions remove' to remove a bastion.")
+				fmt.Println("Use 'awsdo bastions list' to list bastions, 'awsdo bastions add' to add a new bastion, 'awsdo bastions update' to update an existing bastion, or 'awsdo bastions remove' to remove a bastion.")
 				os.Exit(1)
 			}
 		}
@@ -102,7 +104,7 @@ func main() {
 		return
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
-		fmt.Println("Use 'awsutil help' to see available commands.")
+		fmt.Println("Use 'awsdo help' to see available commands.")
 		os.Exit(1)
 	}
 

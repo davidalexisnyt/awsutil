@@ -18,7 +18,7 @@ func findInstances(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil instances find [--profile <aws cli profile>] <filter string>")
+		fmt.Println("USAGE:\n    awsdo instances find [--profile <aws cli profile>] <filter string>")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -176,7 +176,7 @@ func listInstances(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil instances list [--profile <aws cli profile>]")
+		fmt.Println("USAGE:\n    awsdo instances list [--profile <aws cli profile>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -245,7 +245,7 @@ func addInstance(args []string, config *Configuration) error {
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>")
+		fmt.Println("USAGE:\n    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -367,7 +367,7 @@ func updateInstance(args []string, config *Configuration) error {
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil instances update [--profile <aws cli profile>] [--name <instance name>] [<filter string>]")
+		fmt.Println("USAGE:\n    awsdo instances update [--profile <aws cli profile>] [--name <instance name>] [<filter string>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -497,7 +497,7 @@ func removeInstance(args []string, config *Configuration) error {
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsutil instances remove [--profile <aws cli profile>] [--name <instance name>]")
+		fmt.Println("USAGE:\n    awsdo instances remove [--profile <aws cli profile>] [--name <instance name>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {

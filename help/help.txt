@@ -1,7 +1,7 @@
-awsutil help - Show help information
+awsdo help - Show help information
 
 USAGE:
-    awsutil help [<command>]
+    awsdo help [<command>]
 
 DESCRIPTION:
     Shows general help or detailed help for a specific command.

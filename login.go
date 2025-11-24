@@ -14,7 +14,7 @@ func login(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
 	if err := flagSet.Parse(args); err != nil {
-		return fmt.Errorf("USAGE: awsutil login [--profile <aws cli profile>]")
+		return fmt.Errorf("USAGE: awsdo login [--profile <aws cli profile>]")
 	}
 
 	commandArgs := []string{"sso", "login"}
@@ -68,4 +68,3 @@ func isLoggedIn(profile string) bool {
 
 	return true
 }
-

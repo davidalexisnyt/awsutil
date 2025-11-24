@@ -21,7 +21,7 @@ const (
 // startREPL starts the interactive REPL mode
 func startREPL(configFile string, config *Configuration) {
 	// Print intro text
-	fmt.Println("\nWelcome to awsutil REPL!")
+	fmt.Println("\nWelcome to the awsdo REPL!")
 	fmt.Println("Type 'help' for available commands, or 'exit'/'quit' to exit.")
 	fmt.Println()
 

@@ -1,10 +1,10 @@
-# AWSUTIL
+# AWSDO
 
 This is a tool for automating common tasks using the AWS CLI.
 
 I got tired of typing in long strings of AWS CLI commands and having to remember all the options and parameters. Yes, shell scripts can be created to do things like find instance IDs, start SSM sessions, log in to different environments, etc. But I, and other members of my team, need to flip back and forth between Windows, Linux, and MacOS. Having to maintain scripts for PowerShell, bash, zsh, and who knows what else, is a pain.
 
-Thus, the `awsutil` tool was born. The aim is to have the tool minimize the amount of typing, "learn" your most common settings, and generally just help get the job done and get out of the way.
+Thus, the `awsdo` tool was born. The aim is to have the tool minimize the amount of typing, "learn" your most common settings, and generally just help get the job done and get out of the way.
 
 ## Features
 
@@ -42,7 +42,7 @@ go build -ldflags="-s -w"
 
 The `-ldflags` option is not required but is nice, since is tells the compiler to produce an executable that is more optimized and does not have debug symbols. The result is a (much) smaller executable than with a plain `go build`.
 
-You should now have an executable (`awsutil.exe` if you're on Windows, `awsutil` otherwise).
+You should now have an executable (`awsdo.exe` if you're on Windows, `awsdo` otherwise).
 
 ### Step 2: Copy/move to a convenient location
 
@@ -57,13 +57,13 @@ The tool provides the following commands:
 - `terminal` - Start an SSM terminal session to an EC2 instance
 - `bastion` - Start a port forwarding session through a bastion host
 - `bastions` - Manage bastion hosts (list, add, update, remove)
-- `help` - Show help information (use `awsutil help <command>` for detailed help)
+- `help` - Show help information (use `awsdo help <command>` for detailed help)
 - `docs` - Displays the application documentation (contained in README.md) to the terminal. The markdown is converted and rendered to look beautiful in the terminal.
 
 For detailed help on any command, use:
 
 ```shell
-awsutil help <command>
+awsdo help <command>
 ```
 
 ## Usage
@@ -76,17 +76,17 @@ Let's say we have profiles called `dev` and `prod`, we log in using the `dev` pr
 aws sso login --profile dev
 ```
 
-We can do the same thing with `awsutil`:
+We can do the same thing with `awsdo`:
 
 ```shell
-awsutil login -p dev
+awsdo login -p dev
 ```
 
-But nothing is gained by using `awsutil` like this, so let's simplify things by automatically taking care of some housekeeping under the hood.
+But nothing is gained by using `awsdo` like this, so let's simplify things by automatically taking care of some housekeeping under the hood.
 
-- Once a profile is used with a command, it becomes the default for further commands. e.g. If we login using the dev profile (`awsutil login -p dev`), the `dev` profile becomes the default for other commands like `awsutil instances` or even when you need to login again later, `awsutil login` will log in using the `dev` profile since it was the last one we used.
-- There is no need to log in before using another command. `awsutil` will see that we're not currently logged in and will perform the login process before the command that was run. e.g. Let's say we run `awsutil instances myapp` without first running `awsutil login`, we'll first see the AWS login page get launched. Once authentication is done, the `instances` command will be run, listing any existing instances with names starting with "myapp" (we'll go deeper into the `instances` command later).
-- Heck, we don't even need to ever run the `awsutil login` command if we don't want to, since ... see the previous bullet point.
+- Once a profile is used with a command, it becomes the default for further commands. e.g. If we login using the dev profile (`awsdo login -p dev`), the `dev` profile becomes the default for other commands like `awsdo instances` or even when you need to login again later, `awsdo login` will log in using the `dev` profile since it was the last one we used.
+- There is no need to log in before using another command. `awsdo` will see that we're not currently logged in and will perform the login process before the command that was run. e.g. Let's say we run `awsdo instances myapp` without first running `awsdo login`, we'll first see the AWS login page get launched. Once authentication is done, the `instances` command will be run, listing any existing instances with names starting with "myapp" (we'll go deeper into the `instances` command later).
+- Heck, we don't even need to ever run the `awsdo login` command if we don't want to, since ... see the previous bullet point.
 
 ### Get a list if EC2 instances
 
@@ -99,16 +99,16 @@ aws --profile dev ec2 describe-instances \
     --output=table
 ```
 
-There's no way that anyone will remember this. So let's simplify the process with awsutil:
+There's no way that anyone will remember this. So let's simplify the process with awsdo:
 
 ```shell
-awsutil instances --profile dev example
+awsdo instances --profile dev example
 ```
 
 But wait... `dev` was already set as our default profile from our previous commands, so we can just use:
 
 ```shell
-awsutil instances example
+awsdo instances example
 ```
 
 This will print out something like this:
@@ -119,11 +119,11 @@ Instances
     ...
 ```
 
-We're going to work quite a bit with the `i-0c15ff251abee847f` instance, so let's set it as our default. The overriding theme of `awsutil` is automatically making our lives easier. In this case, the `instances` command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the `terminal` command we'll talk about next).
+We're going to work quite a bit with the `i-0c15ff251abee847f` instance, so let's set it as our default. The overriding theme of `awsdo` is automatically making our lives easier. In this case, the `instances` command sees that there is a single EC2 instance matching our query, so it automatically saves the instance info and sets it as our default for commands where we need to use the instance (like the `terminal` command we'll talk about next).
 
 However, if our `instances` query returns more than one EC2 instance, we'll need to specify the instance ID (just once) when we want to connect to it.
 
-> NOTE: You should notice a new file called `awsutil_config.json` in the same location as the `awsutil` executable after running the commands we've gone over so far. Take a look at the file if you're curious to see how `awsutil` keeps track of things.
+> NOTE: You should notice a new file called `awsdo_config.json` in the same location as the `awsdo` executable after running the commands we've gone over so far. Take a look at the file if you're curious to see how `awsdo` keeps track of things.
 
 ### Launching an SSM terminal session
 
@@ -134,20 +134,20 @@ aws sso login --profile dev
 aws ssm --profile dev start-session --target i-0c15ff251abee847f
 ```
 
-Not as bad as the instance query command, but still too complicated. We have better things to do with our time. With `awsutil`, we would do the same thing like this:
+Not as bad as the instance query command, but still too complicated. We have better things to do with our time. With `awsdo`, we would do the same thing like this:
 
 ```shell
-awsutil terminal
+awsdo terminal
 ```
 
-Remember the `awsutil instances` command we ran before that returned just one matching instance? The instance information was automatically saved as our default, so the `awsutil terminal` command just knows to connect to it.
+Remember the `awsdo instances` command we ran before that returned just one matching instance? The instance information was automatically saved as our default, so the `awsdo terminal` command just knows to connect to it.
 
 There are situations where we might need to specify the instance ID and/or the profile ID with the `terminal` command:
 
-- The last `instances` query we ran returned a list of more than one instance. `awsutil` can't know which one you would want to use, to it does not perform any automatic configuration. In this case, we will need to use `awsutil terminal <instance id>` to connect to the instance we want. NOW, the instance will get automatically saved as our default going forward.
-- The last commands we used were against the `dev` instance, but now we want to connect to an instance under the `prod` profile. In this case, we need to specify both the instance ID and the profile: `awsutil terminal -p prod <instance id>`. `awsutil` will automatically save the specified instance ID as the default... for the prod profile. So if we already have a default instance for our dev profile, we still just need to run `awsutil terminal -p dev` to connect to the last dev instance we used.
+- The last `instances` query we ran returned a list of more than one instance. `awsdo` can't know which one you would want to use, to it does not perform any automatic configuration. In this case, we will need to use `awsdo terminal <instance id>` to connect to the instance we want. NOW, the instance will get automatically saved as our default going forward.
+- The last commands we used were against the `dev` instance, but now we want to connect to an instance under the `prod` profile. In this case, we need to specify both the instance ID and the profile: `awsdo terminal -p prod <instance id>`. `awsdo` will automatically save the specified instance ID as the default... for the prod profile. So if we already have a default instance for our dev profile, we still just need to run `awsdo terminal -p dev` to connect to the last dev instance we used.
 
-Again, the theme with `awsutil` is to remember the context of what we were doing so it can save us time and effort.
+Again, the theme with `awsdo` is to remember the context of what we were doing so it can save us time and effort.
 
 ### Database Bastions
 
@@ -163,7 +163,7 @@ Getting connected to AWS databases through bastion jump hosts can be a messy pai
 
 This is simplified greatly with `awstuil`, as we'll see in a bit.
 
-The `awsutil` bastion functionality supports multiple named bastion tunnels per AWS profile, making it easy to manage connections to different database services.
+The `awsdo` bastion functionality supports multiple named bastion tunnels per AWS profile, making it easy to manage connections to different database services.
 This is handy for when there are different target databases you would like to access for different applications, even when the environment has a single bastion jump host.
 
 #### Listing Configured Bastions
@@ -171,19 +171,19 @@ This is handy for when there are different target databases you would like to ac
 To view all configured bastions across all profiles:
 
 ```shell
-awsutil bastions list
+awsdo bastions list
 ```
 
 Or simply:
 
 ```shell
-awsutil bastions
+awsdo bastions
 ```
 
 To filter by a specific profile:
 
 ```shell
-awsutil bastions list -p <profile>
+awsdo bastions list -p <profile>
 ```
 
 This will display all configured bastions, showing:
@@ -205,12 +205,12 @@ If we have not configured any bastions yet, the `bastions list` results will be 
 New bastions are added using the interactive `bastions add` command.
 
 ```shell
-awsutil bastions add -p <profile>
+awsdo bastions add -p <profile>
 ```
 
 This command will do all the heavy lifting of running multiple AWS commands to gather the information we need to configure our tunnel.
 
-1. If we're not already logged in to the specified profile, `awsutil` will first go through the AWS authentication steps.
+1. If we're not already logged in to the specified profile, `awsdo` will first go through the AWS authentication steps.
 2. It runs AWS commands to query for available database instances, then displays the list to us, asking us to select the one we're interested in. The endpoint name and port for the server are saved automatically.
 3. It then runs AWS commands to get a list of available EC2 bastion jump hosts, and presents us with the list so we can pick the appropriate one.
 4. It asks us for a name for our new bastion tunnel configuration.
@@ -218,20 +218,20 @@ This command will do all the heavy lifting of running multiple AWS commands to g
 
 Done. A new, named bastion configuration is saved under the speficied profile for us to use going forwared.
 
-Now, if we run the `awsutils bastions list` command, we'll see our new bastion in the list.
+Now, if we run the `awsdos bastions list` command, we'll see our new bastion in the list.
 
 **Updating an Existing Bastion**
 
 To update an existing bastion configuration, use the `bastions update` command:
 
 ```shell
-awsutil bastions update -p <profile> --name <bastion-name>
+awsdo bastions update -p <profile> --name <bastion-name>
 ```
 
 Or simply:
 
 ```shell
-awsutil bastions update -p <profile>
+awsdo bastions update -p <profile>
 ```
 
 This will prompt you for the bastion name if not provided, then guide you through the same interactive process as adding a new bastion. The bastion's ID and profile association are preserved during updates.
@@ -241,13 +241,13 @@ This will prompt you for the bastion name if not provided, then guide you throug
 To remove a bastion configuration, use the `bastions remove` command:
 
 ```shell
-awsutil bastions remove -p <profile> -n <bastion-name>
+awsdo bastions remove -p <profile> -n <bastion-name>
 ```
 
 Or simply:
 
 ```shell
-awsutil bastions remove -p <profile>
+awsdo bastions remove -p <profile>
 ```
 
 This will prompt you for the bastion name if not provided. The command will display the bastion information and ask for confirmation before removing it. If the bastion being removed is the default bastion for the profile, the default will be cleared.
@@ -257,13 +257,13 @@ This will prompt you for the bastion name if not provided. The command will disp
 Once configured, starting a bastion session is simple:
 
 ```shell
-awsutil bastion
+awsdo bastion
 ```
 
 This will use the default bastion on the default AWS profile. You can also specify the profile using the `-p` option:
 
 ```shell
-awsutil bastion -p <profile>
+awsdo bastion -p <profile>
 ```
 
 This will start the default bastion under the specified profile.
@@ -271,7 +271,7 @@ This will start the default bastion under the specified profile.
 Or we can get really specific and provide both the profile and the name:
 
 ```shell
-awsutil bastion -p <profile> --name mybastion
+awsdo bastion -p <profile> --name mybastion
 ```
 
 **Finding Bastions by Name Across Profiles**
@@ -279,7 +279,7 @@ awsutil bastion -p <profile> --name mybastion
 If you have multiple bastions configured across different profiles and we use names that are unique across, you can specify the one to use with the `--name` option:
 
 ```shell
-awsutil bastion --name my-prod-db
+awsdo bastion --name my-prod-db
 ```
 
 When using `--name` without specifying a profile:
@@ -291,43 +291,43 @@ When using `--name` without specifying a profile:
 If you specify both `--name` and `-p` (or `--profile`), the tool will only search for the bastion in the specified profile:
 
 ```shell
-awsutil bastion -p dev --name my-db
+awsdo bastion -p dev --name my-db
 ```
 
-These options give us the flexibility to use `awsutil` in a way that matches our personal approach.
+These options give us the flexibility to use `awsdo` in a way that matches our personal approach.
 
 ### What if our authentication session has expired?
 
-If we try to issue an AWS CLI command without first logging in, or after our session has expired, we would get a rude response. We would then need to log in and re-attempt our previous command. This is simplified with `awsutil`. If is detects that we don't have a valid authentication session, it will log in with our default profile before executing the command.
+If we try to issue an AWS CLI command without first logging in, or after our session has expired, we would get a rude response. We would then need to log in and re-attempt our previous command. This is simplified with `awsdo`. If is detects that we don't have a valid authentication session, it will log in with our default profile before executing the command.
 
 So using:
 
 ```
-awsutil terminal
+awsdo terminal
 ```
 
 is the same as doing:
 
 ```shell
-awsutil login
-awsutil terminal
+awsdo login
+awsdo terminal
 ```
 
 ### More Automatic Configuration Examples
 
-What if you want to start an SSM session to an instance you already know and this is the first time you're using `awsutil`? We can kill two proverbial birds with one stone:
+What if you want to start an SSM session to an instance you already know and this is the first time you're using `awsdo`? We can kill two proverbial birds with one stone:
 
 ```shell
-awsutil terminal --profile dev i-0c15ff251abee847f
+awsdo terminal --profile dev i-0c15ff251abee847f
 ```
 
-The profile and instance ID will automatically get saved, an SSO authentication session will be created, and you will be connected to the instance via an SSM terminal session. Then you'd simply use `awsutil terminal` to log in to the instance again later.
+The profile and instance ID will automatically get saved, an SSO authentication session will be created, and you will be connected to the instance via an SSM terminal session. Then you'd simply use `awsdo terminal` to log in to the instance again later.
 
-Let's simplify even further. If the filter we supply for the `awsutil instances` command results in just one instance being returned, `awsutil` will save that instance ID as your default. Let's try it. First, delete the `awsutil_config.json` file so we're sure we have no defaults saved. Then issue do something like this, where the _filter_ parameter ensures that we get just one instance back:
+Let's simplify even further. If the filter we supply for the `awsdo instances` command results in just one instance being returned, `awsdo` will save that instance ID as your default. Let's try it. First, delete the `awsdo_config.json` file so we're sure we have no defaults saved. Then issue do something like this, where the _filter_ parameter ensures that we get just one instance back:
 
 ```shell
-awsutil instances --profile spg very-specific-prefix
-awsutil terminal
+awsdo instances --profile spg very-specific-prefix
+awsdo terminal
 ```
 
 Both the profile and the resultant instance ID from the 1st command will be remembered for further commands.
@@ -337,31 +337,31 @@ Both the profile and the resultant instance ID from the 1st command will be reme
 The tool includes a comprehensive help system. To see all available commands:
 
 ```shell
-awsutil help
+awsdo help
 ```
 
 For detailed help on a specific command:
 
 ```shell
-awsutil help bastion
-awsutil help bastions
-awsutil help bastions list
-awsutil help bastions add
-awsutil help bastions update
-awsutil help bastions remove
-awsutil help terminal
+awsdo help bastion
+awsdo help bastions
+awsdo help bastions list
+awsdo help bastions add
+awsdo help bastions update
+awsdo help bastions remove
+awsdo help terminal
 # etc.
 ```
 
-In addition to these help topics, `awsutil` also displays the full documentation (this file):
+In addition to these help topics, `awsdo` also displays the full documentation (this file):
 
 ```shell
-awsutil docs
+awsdo docs
 ```
 
 ## Configuration File Format
 
-The configuration file (`awsutil_config.json`) is stored in the same directory as the executable. It supports:
+The configuration file (`awsdo_config.json`) is stored in the same directory as the executable. It supports:
 
 - **Default Profile**: The AWS CLI profile to use by default
 - **Per-Profile Settings**:

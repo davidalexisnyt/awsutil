@@ -1,13 +1,13 @@
-awsutil bastions - Manage bastion hosts
+awsdo bastions - Manage bastion hosts
 
 USAGE:
-    awsutil bastions [list] [--profile <aws cli profile>]
-    awsutil bastions ls [--profile <aws cli profile>]
-    awsutil bastions add [--profile <aws cli profile>]
-    awsutil bastions update [--profile <aws cli profile>] [--name <bastion name>]
-    awsutil bastions up [--profile <aws cli profile>] [--name <bastion name>]
-    awsutil bastions remove [--profile <aws cli profile>] [--name <bastion name>]
-    awsutil bastions rm [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo bastions [list] [--profile <aws cli profile>]
+    awsdo bastions ls [--profile <aws cli profile>]
+    awsdo bastions add [--profile <aws cli profile>]
+    awsdo bastions update [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo bastions up [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo bastions remove [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo bastions rm [--profile <aws cli profile>] [--name <bastion name>]
 
 DESCRIPTION:
     The bastions command provides subcommands to list, add, update, and remove

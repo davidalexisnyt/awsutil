@@ -1,7 +1,7 @@
-awsutil bastion - Start a port forwarding session through a bastion host
+awsdo bastion - Start a port forwarding session through a bastion host
 
 USAGE:
-    awsutil bastion [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo bastion [--profile <aws cli profile>] [--name <bastion name>]
                     [--instance <bastion instance id>] [--host <remote host>]
                     [--port <remote port>] [--local <local port>]
 
@@ -28,15 +28,15 @@ OPTIONS:
     --local              Local port to bind to (overrides configured local port)
 
 EXAMPLES:
-    awsutil bastion
+    awsdo bastion
         Uses the default bastion on the default AWS profile.
 
-    awsutil bastion -p dev
+    awsdo bastion -p dev
         Uses the default bastion on the specified profile.
 
-    awsutil bastion --name my-prod-db
+    awsdo bastion --name my-prod-db
         Searches for bastion named "my-prod-db" across all profiles.
 
-    awsutil bastion -p dev --name my-db
+    awsdo bastion -p dev --name my-db
         Uses the bastion named "my-db" from the dev profile only.
 
