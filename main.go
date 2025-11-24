@@ -48,9 +48,8 @@ func main() {
 		err = login(os.Args[2:], &config)
 	case "instances":
 		if len(os.Args) < 3 {
-			fmt.Printf("Invalid instances command: subcommand required\n")
-			fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances update' to update an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
-			os.Exit(1)
+			// Default to 'list' if no subcommand provided
+			err = listInstances([]string{}, &config)
 		} else {
 			subcommand := strings.ToLower(os.Args[2])
 			switch subcommand {
@@ -77,7 +76,7 @@ func main() {
 	case "bastions":
 		if len(os.Args) < 3 {
 			// Default to 'list' if no subcommand provided
-			err = listBastions(os.Args[2:], &config)
+			err = listBastions([]string{}, &config)
 		} else {
 			subcommand := strings.ToLower(os.Args[2])
 			switch subcommand {

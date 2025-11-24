@@ -147,9 +147,7 @@ func executeREPLCommand(command string, args []string, config *Configuration) er
 		return login(args, config)
 	case "instances":
 		if len(args) < 1 {
-			fmt.Printf("Invalid instances command: subcommand required\n")
-			fmt.Println("Use 'instances find' to find instances, 'instances list' to list configured instances, 'instances add' to add an instance, 'instances update' to update an instance, 'instances remove' to remove an instance, or 'help instances' for more information.")
-			return nil
+			return listInstances(args, config)
 		}
 
 		subcommand := strings.ToLower(args[0])
