@@ -12,7 +12,7 @@ const (
 	greenColor  = "\033[32m"
 	resetColor  = "\033[0m"
 	clearScreen = "\033[2J\033[H" // Clear screen and move cursor to home
-	prompt      = ">>> "
+	prompt      = "awsdo >> "
 	ctrlL       = '\f' // Form feed character (Ctrl-L)
 	ctrlD       = 0x04 // Ctrl-D character
 )
