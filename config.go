@@ -182,7 +182,7 @@ func migrateBastionConfig(config *Configuration) {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-func saveConfiguration(fileName string, config *Configuration, options ...string) {
+func saveConfiguration(fileName string, config *Configuration) {
 	// Rebuild BastionLookup map before saving
 	rebuildBastionLookup(config)
 

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -678,6 +680,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	}
 
 	fmt.Printf("\nStarting port forwarding session to %s:%d via bastion %s...\n", bastion.Host, bastion.LocalPort, bastion.Instance)
+	fmt.Println("Press Ctrl-C to stop the tunnel and return to the REPL.")
 
 	command := exec.Command("aws", commandArgs...)
 	command.Stdout = os.Stdout
@@ -688,18 +691,44 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to start session: %v", err)
 	}
 
-	// Wait for the command to complete or be interrupted
-	if err := command.Wait(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			// If the process was terminated by a signal (e.g. Ctrl+C), don't treat it as an error
-			if exitErr.ExitCode() == -1 {
-				return nil
-			}
-		}
-		return fmt.Errorf("session ended with error: %v", err)
-	}
+	// Set up signal handling to catch Ctrl-C
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signalChan)
 
-	return nil
+	// Wait for command completion or interrupt in a goroutine
+	done := make(chan error, 1)
+	go func() {
+		done <- command.Wait()
+	}()
+
+	select {
+	case <-signalChan:
+		// Signal received (Ctrl-C) - kill the command process
+		fmt.Println("\nStopping bastion tunnel...")
+		if err := command.Process.Kill(); err != nil {
+			return fmt.Errorf("failed to kill process: %v", err)
+		}
+
+		// Wait for the process to actually terminate
+		<-done
+
+		// Don't return an error - just return to REPL
+		return nil
+	case err := <-done:
+		// Command completed normally
+		if err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				// If the process was terminated by a signal, don't treat it as an error
+				if exitErr.ExitCode() == -1 {
+					return nil
+				}
+			}
+			return fmt.Errorf("session ended with error: %v", err)
+		}
+
+		return nil
+	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

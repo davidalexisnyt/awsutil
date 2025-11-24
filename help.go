@@ -37,6 +37,9 @@ var helpHelp string
 //go:embed help/docs.txt
 var helpDocs string
 
+//go:embed help/repl.txt
+var helpRepl string
+
 //go:embed help/unknown.txt
 var helpUnknown string
 
@@ -143,6 +146,8 @@ func showHelp(command string) {
 		fmt.Print(helpBastions)
 	case "docs":
 		fmt.Print(helpDocs)
+	case "repl":
+		fmt.Print(helpRepl)
 	case "help":
 		fmt.Print(helpHelp)
 	default:

@@ -2,9 +2,12 @@ awsutil bastions - Manage bastion hosts
 
 USAGE:
     awsutil bastions [list] [--profile <aws cli profile>]
+    awsutil bastions ls [--profile <aws cli profile>]
     awsutil bastions add [--profile <aws cli profile>]
     awsutil bastions update [--profile <aws cli profile>] [--name <bastion name>]
+    awsutil bastions up [--profile <aws cli profile>] [--name <bastion name>]
     awsutil bastions remove [--profile <aws cli profile>] [--name <bastion name>]
+    awsutil bastions rm [--profile <aws cli profile>] [--name <bastion name>]
 
 DESCRIPTION:
     The bastions command provides subcommands to list, add, update, and remove
@@ -13,6 +16,7 @@ DESCRIPTION:
 SUBCOMMANDS:
     list    List all configured bastions for the specified profile.
             Displays bastion information in a vertical format.
+            Shortcut: ls
 
     add     Interactively configure a new bastion by querying AWS
             for RDS databases and EC2 bastion instances.
@@ -20,10 +24,12 @@ SUBCOMMANDS:
     update  Update an existing bastion configuration. Prompts for bastion
             name if not provided via --name flag, then guides through the
             same interactive process as adding a new bastion.
+            Shortcut: up
 
     remove  Remove a named bastion from the configuration. Prompts for
             confirmation before removal. The bastion name can be provided
             via --name or -n flag, or will be prompted interactively.
+            Shortcut: rm
 
 OPTIONS:
     --profile, -p    AWS CLI profile to use

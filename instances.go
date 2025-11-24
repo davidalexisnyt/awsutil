@@ -359,6 +359,136 @@ func addInstance(args []string, config *Configuration) error {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func updateInstance(args []string, config *Configuration) error {
+	flagSet := flag.NewFlagSet("instances update", flag.ExitOnError)
+	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
+	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	instanceName := flagSet.String("name", "", "--name <instance name>")
+	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
+
+	flagSet.Usage = func() {
+		fmt.Println("USAGE:\n    awsutil instances update [--profile <aws cli profile>] [--name <instance name>] [<filter string>]")
+	}
+
+	if err := flagSet.Parse(args); err != nil {
+		flagSet.Usage()
+		return fmt.Errorf("failed to parse options")
+	}
+
+	currentProfile, err := ensureProfile(config, profile, profileShort)
+	if err != nil {
+		return err
+	}
+
+	// Ensure that we're logged in before running the command
+	if !isLoggedIn(currentProfile) {
+		loginArgs := []string{"--profile", currentProfile}
+		if err := login(loginArgs, config); err != nil {
+			return err
+		}
+	}
+
+	profileInfo := config.Profiles[currentProfile]
+	if profileInfo.Instances == nil {
+		profileInfo.Instances = make(map[string]Instance)
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	// Get instance name
+	var targetInstanceName string
+	if *instanceName != "" {
+		targetInstanceName = *instanceName
+	} else if *instanceNameShort != "" {
+		targetInstanceName = *instanceNameShort
+	} else {
+		// Prompt for instance name
+		fmt.Print("Enter instance name to update: ")
+		nameInput, _ := reader.ReadString('\n')
+		targetInstanceName = strings.TrimSpace(nameInput)
+
+		if targetInstanceName == "" {
+			return fmt.Errorf("instance name is required")
+		}
+	}
+
+	// Check if instance exists
+	existingInstance, exists := profileInfo.Instances[targetInstanceName]
+	if !exists {
+		return fmt.Errorf("instance '%s' not found in profile '%s'", targetInstanceName, currentProfile)
+	}
+
+	// Get filter string (optional - if not provided, prompt for it)
+	var filter string
+	if len(flagSet.Args()) > 0 {
+		filter = flagSet.Args()[0]
+	} else {
+		// Prompt for filter string
+		fmt.Print("Enter instance filter string (or press Enter to use existing instance ID): ")
+		filterInput, _ := reader.ReadString('\n')
+		filter = strings.TrimSpace(filterInput)
+		if filter == "" {
+			// Use existing instance ID as default filter
+			filter = existingInstance.ID
+		}
+	}
+
+	// Query EC2 instances
+	fmt.Println("\nQuerying EC2 instances...")
+	instances, err := queryEC2Instances(currentProfile, filter)
+	if err != nil {
+		return fmt.Errorf("failed to query EC2 instances: %v", err)
+	}
+
+	if len(instances) == 0 {
+		return fmt.Errorf("no EC2 instances found matching filter '%s'", filter)
+	}
+
+	// Display instances and let user select
+	fmt.Println("\nAvailable EC2 instances:")
+	for i, inst := range instances {
+		fmt.Printf("  %2d: %s - %s", i+1, inst.Instance, inst.Name)
+		if inst.Host != "" {
+			fmt.Printf(" (%s)", inst.Host)
+		}
+		fmt.Println()
+	}
+
+	fmt.Print("\nSelect instance number: ")
+	instSelection, _ := reader.ReadString('\n')
+	instIndex, err := strconv.Atoi(strings.TrimSpace(instSelection))
+
+	if err != nil || instIndex < 1 || instIndex > len(instances) {
+		return fmt.Errorf("invalid selection")
+	}
+
+	selectedInstance := instances[instIndex-1]
+
+	// Update instance configuration
+	// Preserve Name and Profile, update ID and Host
+	updatedInstance := Instance{
+		Name:    targetInstanceName,
+		ID:      selectedInstance.Instance,
+		Profile: currentProfile,
+		Host:    selectedInstance.Host,
+	}
+
+	// If Host is empty, use instance ID as fallback
+	if updatedInstance.Host == "" {
+		updatedInstance.Host = selectedInstance.Instance
+	}
+
+	// Save to configuration
+	profileInfo.Instances[targetInstanceName] = updatedInstance
+	profileInfo.Name = currentProfile
+	config.Profiles[currentProfile] = profileInfo
+
+	fmt.Printf("\nInstance '%s' (ID: %s) updated successfully!\n", targetInstanceName, selectedInstance.Instance)
+
+	return nil
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeInstance(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("instances remove", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")

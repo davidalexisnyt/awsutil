@@ -49,22 +49,24 @@ func main() {
 	case "instances":
 		if len(os.Args) < 3 {
 			fmt.Printf("Invalid instances command: subcommand required\n")
-			fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
+			fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances update' to update an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
 			os.Exit(1)
 		} else {
 			subcommand := strings.ToLower(os.Args[2])
 			switch subcommand {
 			case "find":
 				err = findInstances(os.Args[3:], &config)
-			case "list":
+			case "list", "ls":
 				err = listInstances(os.Args[3:], &config)
 			case "add":
 				err = addInstance(os.Args[3:], &config)
-			case "remove":
+			case "update":
+				err = updateInstance(os.Args[3:], &config)
+			case "remove", "rm":
 				err = removeInstance(os.Args[3:], &config)
 			default:
 				fmt.Printf("Invalid instances subcommand: %s\n", subcommand)
-				fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
+				fmt.Println("Use 'awsutil instances find' to find instances, 'awsutil instances list' to list configured instances, 'awsutil instances add' to add an instance, 'awsutil instances update' to update an instance, 'awsutil instances remove' to remove an instance, or 'awsutil help instances' for more information.")
 				os.Exit(1)
 			}
 		}
@@ -79,13 +81,13 @@ func main() {
 		} else {
 			subcommand := strings.ToLower(os.Args[2])
 			switch subcommand {
-			case "list":
+			case "list", "ls":
 				err = listBastions(os.Args[3:], &config)
 			case "add":
 				err = addBastion(os.Args[3:], &config)
-			case "update":
+			case "update", "up":
 				err = updateBastion(os.Args[3:], &config)
-			case "remove":
+			case "remove", "rm":
 				err = removeBastion(os.Args[3:], &config)
 			default:
 				fmt.Printf("Invalid bastions subcommand: %s\n", subcommand)
@@ -96,8 +98,11 @@ func main() {
 	case "docs":
 		showDocs()
 		return
+	case "repl":
+		startREPL(configFile, &config)
+		return
 	default:
-		fmt.Printf("Invalid option: %s\n", command)
+		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'awsutil help' to see available commands.")
 		os.Exit(1)
 	}
