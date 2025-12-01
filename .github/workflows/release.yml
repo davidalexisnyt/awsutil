@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if this is a version bump commit
+        id: check_commit
+        run: |
+          # Only skip if triggered by push and last commit is a version bump
+          if [ "${{ github.event_name }}" = "push" ] && git log -1 --pretty=%B | grep -q "Bump version"; then
+            echo "skip_release=true" >> $GITHUB_OUTPUT
+            echo "This is a version bump commit triggered by push, skipping release to avoid loop"
+          else
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+            echo "Proceeding with release"
+          fi
+
+      - name: Set up Go
+        if: steps.check_commit.outputs.skip_release != 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Read current version
+        if: steps.check_commit.outputs.skip_release != 'true'
+        id: version
+        run: |
+          CURRENT_VERSION=$(grep 'var Version = "' main.go | sed 's/.*var Version = "\([^"]*\)".*/\1/')
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "Error: Could not extract version from main.go"
+            exit 1
+          fi
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Increment patch version
+        if: steps.check_commit.outputs.skip_release != 'true'
+        id: bump_version
+        run: |
+          CURRENT_VERSION="${{ steps.version.outputs.current_version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          if [ -z "$MAJOR" ] || [ -z "$MINOR" ] || [ -z "$PATCH" ]; then
+            echo "Error: Invalid version format: $CURRENT_VERSION"
+            exit 1
+          fi
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Update version in main.go
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          sed -i "s/var Version = \"[^\"]*\"/var Version = \"$NEW_VERSION\"/" main.go
+          echo "Updated main.go with version: $NEW_VERSION"
+          grep "var Version" main.go
+
+      - name: Configure Git
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit version update
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          git add main.go
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Bump version to ${{ steps.bump_version.outputs.new_version }}"
+            git push
+          fi
+
+      - name: Create git tag
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          NEW_VERSION="${{ steps.bump_version.outputs.new_version }}"
+          TAG="v$NEW_VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping tag creation"
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
+          echo "tag=$TAG" >> $GITHUB_ENV
+
+      - name: Set up Go for cross-compilation
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          echo "Building for multiple platforms..."
+
+      - name: Build for Windows amd64
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-windows-amd64.exe
+        continue-on-error: false
+
+      - name: Build for Linux amd64
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-linux-amd64
+        continue-on-error: false
+
+      - name: Build for Linux arm64
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-linux-arm64
+        continue-on-error: false
+
+      - name: Build for macOS amd64
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-darwin-amd64
+        continue-on-error: false
+
+      - name: Build for macOS arm64
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-darwin-arm64
+        continue-on-error: false
+
+      - name: Create release
+        if: steps.check_commit.outputs.skip_release != 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.tag }}
+          name: Release ${{ env.tag }}
+          body: |
+            ## Release ${{ env.tag }}
+
+            ### Artifacts
+            - `awsdo-windows-amd64.exe` - Windows (amd64)
+            - `awsdo-linux-amd64` - Linux (amd64)
+            - `awsdo-linux-arm64` - Linux (arm64)
+            - `awsdo-darwin-amd64` - macOS (amd64)
+            - `awsdo-darwin-arm64` - macOS (arm64)
+          files: |
+            awsdo-windows-amd64.exe
+            awsdo-linux-amd64
+            awsdo-linux-arm64
+            awsdo-darwin-amd64
+            awsdo-darwin-arm64
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

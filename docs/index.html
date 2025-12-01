@@ -327,8 +327,22 @@
 
         <p>This will print out something like this:</p>
 
-        <pre><code>Instances (dev)
-    i-0c15ff251abee847f	 example-app-stg-asg
+        <pre><code>Profile: dev
+┌─────────────────┬──────────────────────────┐
+│Name             │Host                      │
+├─────────────────┼──────────────────────────┤
+│test-stg-api1    │test-api-v01-stg          │
+│test-stg-api2    │test-api-v01-stg          │
+│test-stg-rpt     │test-rpt-v01-stg          │
+│*myapp-dev       │myapp-dev-asg             │
+└─────────────────┴──────────────────────────┘
+
+Profile: prod
+┌─────────────────┬──────────────────────────┐
+│Name             │Host                      │
+├─────────────────┼──────────────────────────┤
+│*myapp-prod      │myapp-prod-asg            │
+└─────────────────┴──────────────────────────┘
     ...</code></pre>
 
         <p>
@@ -564,21 +578,30 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <pre><code class="language-shell">awsdo bastions</code></pre>
 
+        <p>
+          This will display all configured bastions, showing something like
+          this:
+        </p>
+
+        <pre><code>Profile: dev
+┌──────────────┬──────────────────────────────────────────────────────────────┬─────────────────────┬──────┬───────┐
+│Name          │Host                                                          │Instance             │Port  │LPort  │
+├──────────────┼──────────────────────────────────────────────────────────────┼─────────────────────┼──────┼───────┤
+│*myapp-db     │myapp-db.us-east-1.rds.amazonaws.com                          │myapp-db-asg         │5433  │7000   │
+└──────────────┴──────────────────────────────────────────────────────────────┴─────────────────────┴──────┴───────┘
+
+Profile: prod
+┌──────────────┬──────────────────────────────────────────────────────────────┬─────────────────────┬──────┬───────┐
+│Name          │Host                                                          │Instance             │Port  │LPort  │
+├──────────────┼──────────────────────────────────────────────────────────────┼─────────────────────┼──────┼───────┤
+│myapp-db      │myapp-db.us-east-1.rds.amazonaws.com                          │myapp-db-asg         │5432  │7001   │
+│*otherapp-db  │otherapp-db.us-east-1.rds.amazonaws.com                       │otherapp-db-asg      │5432  │7002   │
+└──────────────┴──────────────────────────────────────────────────────────────┴─────────────────────┴──────┴───────┘
+    ...</code></pre>
+
         <p>To filter by a specific profile:</p>
 
         <pre><code class="language-shell">awsdo bastions list -p &lt;profile&gt;</code></pre>
-
-        <p>This will display all configured bastions, showing:</p>
-
-        <ul>
-          <li>Name (with default marker if applicable)</li>
-          <li>ID (unique identifier for the bastion)</li>
-          <li>Profile (AWS profile the bastion belongs to)</li>
-          <li>Instance ID</li>
-          <li>Host</li>
-          <li>Port</li>
-          <li>Local Port</li>
-        </ul>
 
         <p>
           If we have not configured any bastions yet, the
@@ -691,7 +714,7 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
 
         <p>Once configured, starting a bastion session is simple:</p>
 
-        <pre><code class="language-shell">awsdo bastion</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p &lt;profile&gt; &lt;bastion name&gt;</code></pre>
 
         <p>
           This will use the default bastion on the default AWS profile. You can
@@ -707,38 +730,34 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
           name:
         </p>
 
-        <pre><code class="language-shell">awsdo bastion -p &lt;profile&gt; --name mybastion</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p &lt;profile&gt; mybastion</code></pre>
 
         <p><strong>Finding Bastions by Name Across Profiles</strong></p>
 
         <p>
           If you have multiple bastions configured across different profiles and
-          we use names that are unique across, you can specify the one to use
-          with the <code>--name</code> option:
+          we use names that are unique across, you can specify the one to use:
         </p>
 
-        <pre><code class="language-shell">awsdo bastion --name my-prod-db</code></pre>
+        <pre><code class="language-shell">awsdo bastion my-prod-db</code></pre>
 
-        <p>When using <code>--name</code> without specifying a profile:</p>
+        <p>When you specify the name like this, the tool will:</p>
 
         <ul>
+          <li>Search for the bastion in the default profile</li>
+          <li>If it does not find one, search all other profiles</li>
           <li>
-            The tool first searches for the bastion in the default profile
-          </li>
-          <li>If it does not find one, it searches all other profiles</li>
-          <li>
-            Once it finds a bastion with the supplied name, it uses the
-            bastion's associated profile to launch the session
+            Once it finds a bastion with the supplied name, the bastion's
+            associated profile is used to launch the session
           </li>
         </ul>
 
         <p>
-          If you specify both <code>--name</code> and <code>-p</code> (or
-          <code>--profile</code>), the tool will only search for the bastion in
-          the specified profile:
+          If you specify both name and profile, the tool will only search for
+          the bastion in the specified profile:
         </p>
 
-        <pre><code class="language-shell">awsdo bastion -p dev --name my-db</code></pre>
+        <pre><code class="language-shell">awsdo bastion -p dev my-db</code></pre>
 
         <p>
           These options give us the flexibility to use <code>awsdo</code> in a

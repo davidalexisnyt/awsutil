@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -34,7 +35,15 @@ func listBastions(args []string, config *Configuration) error {
 		return nil
 	}
 
-	hasBastions := false
+	// Collect all bastions grouped by profile
+	type bastionRow struct {
+		Bastion     Bastion
+		BastionName string
+		IsDefault   bool
+	}
+
+	// Map to group bastions by profile
+	profileGroups := make(map[string][]bastionRow)
 
 	for profileName, profileInfo := range config.Profiles {
 		// If profile filter is specified, only show that profile
@@ -51,28 +60,162 @@ func listBastions(args []string, config *Configuration) error {
 		}
 
 		if len(profileInfo.Bastions) > 0 {
-			hasBastions = true
-			fmt.Printf("\nBastions for profile '%s':\n", profileName)
+			var bastions []bastionRow
 			for name, bastion := range profileInfo.Bastions {
-				defaultMarker := ""
+				bastions = append(bastions, bastionRow{
+					Bastion:     bastion,
+					BastionName: name,
+					IsDefault:   profileInfo.DefaultBastion == name,
+				})
+			}
+			// Sort bastions by name within this profile
+			sort.Slice(bastions, func(i, j int) bool {
+				return bastions[i].BastionName < bastions[j].BastionName
+			})
+			profileGroups[profileName] = bastions
+		}
+	}
 
-				if profileInfo.DefaultBastion == name {
-					defaultMarker = " (default)"
-				}
+	if len(profileGroups) == 0 {
+		fmt.Println("\nNo bastions configured.")
+		fmt.Println()
+		return nil
+	}
 
-				fmt.Printf("\n  Name:       %s%s\n", name, defaultMarker)
-				fmt.Printf("  ID:         %s\n", bastion.ID)
-				fmt.Printf("  Profile:    %s\n", bastion.Profile)
-				fmt.Printf("  Instance:   %s\n", bastion.Instance)
-				fmt.Printf("  Host:       %s\n", bastion.Host)
-				fmt.Printf("  Port:       %d\n", bastion.Port)
-				fmt.Printf("  Local Port: %d\n", bastion.LocalPort)
+	// Get sorted list of profile names
+	var profileNames []string
+	for profileName := range profileGroups {
+		profileNames = append(profileNames, profileName)
+	}
+	sort.Strings(profileNames)
+
+	// Calculate maximum column widths from all bastions
+	maxNameWidth := len("Name") // Start with header width
+	maxHostWidth := len("Host")
+	maxInstanceWidth := len("Instance")
+	maxPortWidth := len("Port")
+	maxLocalPortWidth := len("LPort")
+
+	// Iterate through all bastions to find maximum widths
+	for _, bastions := range profileGroups {
+		for _, row := range bastions {
+			// Calculate name width (including "*" for default)
+			name := row.BastionName
+			if row.IsDefault {
+				name = "*" + name
+			}
+			if len(name) > maxNameWidth {
+				maxNameWidth = len(name)
+			}
+
+			// Calculate other column widths
+			if len(row.Bastion.Host) > maxHostWidth {
+				maxHostWidth = len(row.Bastion.Host)
+			}
+			if len(row.Bastion.Instance) > maxInstanceWidth {
+				maxInstanceWidth = len(row.Bastion.Instance)
+			}
+
+			// Port and Local Port as strings
+			portStr := strconv.Itoa(row.Bastion.Port)
+			if len(portStr) > maxPortWidth {
+				maxPortWidth = len(portStr)
+			}
+
+			localPortStr := strconv.Itoa(row.Bastion.LocalPort)
+			if len(localPortStr) > maxLocalPortWidth {
+				maxLocalPortWidth = len(localPortStr)
 			}
 		}
 	}
 
-	if !hasBastions {
-		fmt.Println("\nNo bastions configured.")
+	// Add 2 characters padding for readability
+	const padding = 2
+	colNameWidth := maxNameWidth + padding
+	colHostWidth := maxHostWidth + padding
+	colInstanceWidth := maxInstanceWidth + padding
+	colPortWidth := maxPortWidth + padding
+	colLocalPortWidth := maxLocalPortWidth + padding
+
+	// Helper function to truncate string to width
+	truncate := func(s string, width int) string {
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// Helper function to format integer to string with padding
+	formatInt := func(n int, width int) string {
+		s := strconv.Itoa(n)
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// ANSI escape codes for bold
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Println()
+
+	// Display each profile group
+	for i, profileName := range profileNames {
+		bastions := profileGroups[profileName]
+
+		// Print profile header
+		if i > 0 {
+			fmt.Println()
+		}
+		fmt.Printf("%sProfile: %s%s\n", bold, profileName, reset)
+
+		// Print top border
+		fmt.Printf("┌%s┬%s┬%s┬%s┬%s┐\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colPortWidth),
+			strings.Repeat("─", colLocalPortWidth))
+
+		// Print header row
+		fmt.Printf("│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│\n",
+			bold, truncate("Name", colNameWidth), reset,
+			bold, truncate("Host", colHostWidth), reset,
+			bold, truncate("Instance", colInstanceWidth), reset,
+			bold, truncate("Port", colPortWidth), reset,
+			bold, truncate("LPort", colLocalPortWidth), reset)
+
+		// Print separator between header and data
+		fmt.Printf("├%s┼%s┼%s┼%s┼%s┤\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colPortWidth),
+			strings.Repeat("─", colLocalPortWidth))
+
+		// Print data rows
+		for _, row := range bastions {
+			name := row.BastionName
+			if row.IsDefault {
+				name = "*" + name
+			}
+
+			fmt.Printf("│%s│%s│%s│%s│%s│\n",
+				truncate(name, colNameWidth),
+				truncate(row.Bastion.Host, colHostWidth),
+				truncate(row.Bastion.Instance, colInstanceWidth),
+				formatInt(row.Bastion.Port, colPortWidth),
+				formatInt(row.Bastion.LocalPort, colLocalPortWidth))
+		}
+
+		// Print bottom border
+		fmt.Printf("└%s┴%s┴%s┴%s┴%s┘\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colPortWidth),
+			strings.Repeat("─", colLocalPortWidth))
 	}
 
 	fmt.Println()
@@ -479,11 +622,13 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
-	bastionName := flagSet.String("name", "", "--name <bastion name>")
-	bastionInstsance := flagSet.String("instance", "", "--instance <aws instance ID>")
-	bastionHost := flagSet.String("host", "", "--host <bastion host name>")
-	bastionPort := flagSet.Int("port", 0, "--port <port to forward>")
-	bastionLocalPort := flagSet.Int("local", 0, "--local <local port>")
+	bastionNameFull := flagSet.String("name", "", "--name <bastion name>")
+	bastionNameShort := flagSet.String("n", "", "-n <bastion name>")
+	// bastionInstsance := flagSet.String("instance", "", "--instance <aws instance ID>")
+	// bastionHost := flagSet.String("host", "", "--host <bastion host name>")
+	// bastionPort := flagSet.Int("port", 0, "--port <port to forward>")
+	// bastionLocalPort := flagSet.Int("local", 0, "--local <local port>")
+	// bastionName := flagSet.String("bastionName", "", "bastionName")
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:")
@@ -501,8 +646,18 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	var bastion Bastion
 	var currentProfile string
 	var err error
+	var bastionName string
 
-	if *bastionName != "" {
+	switch {
+	case flagSet.NArg() > 0:
+		bastionName = flagSet.Arg(0)
+	case *bastionNameFull != "":
+		bastionName = *bastionNameFull
+	case *bastionNameShort != "":
+		bastionName = *bastionNameShort
+	}
+
+	if bastionName != "" {
 		// If profile is specified, look only in that profile
 		if *profile != "" || *profileShort != "" {
 			currentProfile, err = ensureProfile(config, profile, profileShort)
@@ -516,10 +671,10 @@ func startBastionTunnel(args []string, config *Configuration) error {
 				profileInfo.Bastions = make(map[string]Bastion)
 			}
 
-			selectedBastion, err := selectBastionByName(profileInfo, *bastionName)
+			selectedBastion, err := selectBastionByName(profileInfo, bastionName)
 
 			if err != nil {
-				return fmt.Errorf("bastion '%s' not found in profile '%s'", *bastionName, currentProfile)
+				return fmt.Errorf("bastion '%s' not found in profile '%s'", bastionName, currentProfile)
 			}
 
 			bastion = selectedBastion
@@ -529,7 +684,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 				// Try default profile first
 				if profileInfo, exists := config.Profiles[config.DefaultProfile]; exists {
 					if profileInfo.Bastions != nil {
-						if selectedBastion, err := selectBastionByName(profileInfo, *bastionName); err == nil {
+						if selectedBastion, err := selectBastionByName(profileInfo, bastionName); err == nil {
 							bastion = selectedBastion
 							currentProfile = config.DefaultProfile
 						}
@@ -549,7 +704,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 						}
 
 						if profileInfo.Bastions != nil {
-							if selectedBastion, err := selectBastionByName(profileInfo, *bastionName); err == nil {
+							if selectedBastion, err := selectBastionByName(profileInfo, bastionName); err == nil {
 								bastion = selectedBastion
 
 								// Ensure Profile field is set
@@ -566,7 +721,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 				}
 
 				if !found {
-					return fmt.Errorf("bastion '%s' not found in any profile", *bastionName)
+					return fmt.Errorf("bastion '%s' not found in any profile", bastionName)
 				}
 			} else {
 				// Ensure Profile field is set when found in default profile
@@ -598,46 +753,46 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		}
 	}
 
-	// Override with command line arguments if provided
-	if len(*bastionInstsance) != 0 {
-		bastion.Instance = *bastionInstsance
-	}
+	// // Override with command line arguments if provided
+	// if len(*bastionInstsance) != 0 {
+	// 	bastion.Instance = *bastionInstsance
+	// }
 
-	if len(*bastionHost) != 0 {
-		bastion.Host = *bastionHost
-	}
+	// if len(*bastionHost) != 0 {
+	// 	bastion.Host = *bastionHost
+	// }
 
-	if *bastionPort != 0 {
-		bastion.Port = *bastionPort
-	}
+	// if *bastionPort != 0 {
+	// 	bastion.Port = *bastionPort
+	// }
 
-	if *bastionLocalPort != 0 {
-		bastion.LocalPort = *bastionLocalPort
-	}
+	// if *bastionLocalPort != 0 {
+	// 	bastion.LocalPort = *bastionLocalPort
+	// }
 
-	// Verify required configuration
-	if bastion.Instance == "" {
-		return fmt.Errorf("bastion instance ID must be specified")
-	}
+	// // Verify required configuration
+	// if bastion.Instance == "" {
+	// 	return fmt.Errorf("bastion instance ID must be specified")
+	// }
 
-	if bastion.Host == "" {
-		return fmt.Errorf("bastion host must be specified")
-	}
+	// if bastion.Host == "" {
+	// 	return fmt.Errorf("bastion host must be specified")
+	// }
 
-	if bastion.Port == 0 {
-		return fmt.Errorf("remote port must be specified")
-	}
+	// if bastion.Port == 0 {
+	// 	return fmt.Errorf("remote port must be specified")
+	// }
 
-	if bastion.LocalPort == 0 {
-		// Auto-assign local port if not specified
-		localPort, err := findAvailableLocalPort(7000)
+	// if bastion.LocalPort == 0 {
+	// 	// Auto-assign local port if not specified
+	// 	localPort, err := findAvailableLocalPort(7000)
 
-		if err != nil {
-			return fmt.Errorf("failed to find available local port: %v", err)
-		}
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to find available local port: %v", err)
+	// 	}
 
-		bastion.LocalPort = localPort
-	}
+	// 	bastion.LocalPort = localPort
+	// }
 
 	// Check if Session Manager plugin is installed
 	pluginCheck := exec.Command("session-manager-plugin")

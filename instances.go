@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -191,7 +192,15 @@ func listInstances(args []string, config *Configuration) error {
 		return nil
 	}
 
-	hasInstances := false
+	// Collect all instances grouped by profile
+	type instanceRow struct {
+		Instance     Instance
+		InstanceName string
+		IsDefault    bool
+	}
+
+	// Map to group instances by profile
+	profileGroups := make(map[string][]instanceRow)
 
 	for profileName, profileInfo := range config.Profiles {
 		// If profile filter is specified, only show that profile
@@ -208,27 +217,118 @@ func listInstances(args []string, config *Configuration) error {
 		}
 
 		if len(profileInfo.Instances) > 0 {
-			hasInstances = true
-			fmt.Printf("\nInstances for profile '%s':\n", profileName)
-
+			var instances []instanceRow
 			for name, instance := range profileInfo.Instances {
-				defaultMarker := ""
+				instances = append(instances, instanceRow{
+					Instance:     instance,
+					InstanceName: name,
+					IsDefault:    profileInfo.DefaultInstance == name,
+				})
+			}
+			// Sort instances by name within this profile
+			sort.Slice(instances, func(i, j int) bool {
+				return instances[i].InstanceName < instances[j].InstanceName
+			})
+			profileGroups[profileName] = instances
+		}
+	}
 
-				if profileInfo.DefaultInstance == name {
-					defaultMarker = " (default)"
-				}
+	if len(profileGroups) == 0 {
+		fmt.Println("\nNo instances configured.")
+		fmt.Println()
+		return nil
+	}
 
-				fmt.Println()
-				fmt.Printf("  Name:    %s%s\n", name, defaultMarker)
-				fmt.Printf("  ID:      %s\n", instance.ID)
-				fmt.Printf("  Profile: %s\n", instance.Profile)
-				fmt.Printf("  Host:    %s\n", instance.Host)
+	// Get sorted list of profile names
+	var profileNames []string
+	for profileName := range profileGroups {
+		profileNames = append(profileNames, profileName)
+	}
+	sort.Strings(profileNames)
+
+	// Calculate maximum column widths from all instances
+	maxNameWidth := len("Name") // Start with header width
+	maxHostWidth := len("Host")
+
+	// Iterate through all instances to find maximum widths
+	for _, instances := range profileGroups {
+		for _, row := range instances {
+			// Calculate name width (including "*" for default)
+			name := row.InstanceName
+			if row.IsDefault {
+				name = "*" + name
+			}
+			if len(name) > maxNameWidth {
+				maxNameWidth = len(name)
+			}
+
+			// Calculate host width
+			if len(row.Instance.Host) > maxHostWidth {
+				maxHostWidth = len(row.Instance.Host)
 			}
 		}
 	}
 
-	if !hasInstances {
-		fmt.Println("\nNo instances configured.")
+	// Add 2 characters padding for readability
+	const padding = 2
+	colNameWidth := maxNameWidth + padding
+	colHostWidth := maxHostWidth + padding
+
+	// Helper function to truncate string to width
+	truncate := func(s string, width int) string {
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// ANSI escape codes for bold
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	fmt.Println()
+
+	// Display each profile group
+	for i, profileName := range profileNames {
+		instances := profileGroups[profileName]
+
+		// Print profile header
+		if i > 0 {
+			fmt.Println()
+		}
+		fmt.Printf("%sProfile: %s%s\n", bold, profileName, reset)
+
+		// Print top border
+		fmt.Printf("┌%s┬%s┐\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth))
+
+		// Print header row
+		fmt.Printf("│%s%s%s│%s%s%s│\n",
+			bold, truncate("Name", colNameWidth), reset,
+			bold, truncate("Host", colHostWidth), reset)
+
+		// Print separator between header and data
+		fmt.Printf("├%s┼%s┤\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth))
+
+		// Print data rows
+		for _, row := range instances {
+			name := row.InstanceName
+			if row.IsDefault {
+				name = "*" + name
+			}
+
+			fmt.Printf("│%s│%s│\n",
+				truncate(name, colNameWidth),
+				truncate(row.Instance.Host, colHostWidth))
+		}
+
+		// Print bottom border
+		fmt.Printf("└%s┴%s┘\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colHostWidth))
 	}
 
 	fmt.Println()

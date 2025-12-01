@@ -50,20 +50,20 @@ EXAMPLES:
         awsdo repl
 
     In REPL mode:
-        awsdo >> login -p dev
-        awsdo >> instances find myapp
-        awsdo >> instances ls
-        awsdo >> terminal myinstance
-        awsdo >> bastions ls
-        awsdo >> bastion
-        awsdo >> help instances
-        awsdo >> quit
+        awsdo>> login -p dev
+        awsdo>> instances find myapp
+        awsdo>> instances ls
+        awsdo>> terminal myinstance
+        awsdo>> bastions ls
+        awsdo>> bastion
+        awsdo>> help instances
+        awsdo>> quit
 
 NOTES:
     - The REPL automatically saves your configuration after each successful
       command, so you don't need to worry about losing changes.
     - Empty lines are ignored.
-    - The prompt is displayed in green (awsdo >>) to indicate REPL mode.
+    - The prompt is displayed in green (awsdo>>) to indicate REPL mode.
     - All commands work exactly the same as in normal mode, just without
       the 'awsdo' prefix.
 
