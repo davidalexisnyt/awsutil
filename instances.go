@@ -155,9 +155,6 @@ func findInstances(args []string, config *Configuration) error {
 		// Set DefaultInstance to "default"
 		profileInfo.DefaultInstance = "default"
 
-		// Keep backward compatibility with old Instance field
-		profileInfo.Instance = instanceID
-
 		config.Profiles[currentProfile] = profileInfo
 	}
 
@@ -196,6 +193,7 @@ func listInstances(args []string, config *Configuration) error {
 	type instanceRow struct {
 		Instance     Instance
 		InstanceName string
+		InstanceID   string
 		IsDefault    bool
 	}
 
@@ -223,6 +221,7 @@ func listInstances(args []string, config *Configuration) error {
 					Instance:     instance,
 					InstanceName: name,
 					IsDefault:    profileInfo.DefaultInstance == name,
+					InstanceID:   instance.ID,
 				})
 			}
 			// Sort instances by name within this profile
@@ -248,6 +247,7 @@ func listInstances(args []string, config *Configuration) error {
 
 	// Calculate maximum column widths from all instances
 	maxNameWidth := len("Name") // Start with header width
+	maxINstanceWidth := len("Instance ID")
 	maxHostWidth := len("Host")
 
 	// Iterate through all instances to find maximum widths
@@ -262,6 +262,11 @@ func listInstances(args []string, config *Configuration) error {
 				maxNameWidth = len(name)
 			}
 
+			// Calculate instance ID width
+			if len(row.Instance.ID) > maxINstanceWidth {
+				maxINstanceWidth = len(row.Instance.ID)
+			}
+
 			// Calculate host width
 			if len(row.Instance.Host) > maxHostWidth {
 				maxHostWidth = len(row.Instance.Host)
@@ -272,6 +277,7 @@ func listInstances(args []string, config *Configuration) error {
 	// Add 2 characters padding for readability
 	const padding = 2
 	colNameWidth := maxNameWidth + padding
+	colInstanceWidth := maxINstanceWidth + padding
 	colHostWidth := maxHostWidth + padding
 
 	// Helper function to truncate string to width
@@ -299,18 +305,21 @@ func listInstances(args []string, config *Configuration) error {
 		fmt.Printf("%sProfile: %s%s\n", bold, profileName, reset)
 
 		// Print top border
-		fmt.Printf("┌%s┬%s┐\n",
+		fmt.Printf("┌%s┬%s┬%s┐\n",
 			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
 			strings.Repeat("─", colHostWidth))
 
 		// Print header row
-		fmt.Printf("│%s%s%s│%s%s%s│\n",
+		fmt.Printf("│%s%s%s│%s%s%s│%s%s%s│\n",
 			bold, truncate("Name", colNameWidth), reset,
+			bold, truncate("Instance ID", colInstanceWidth), reset,
 			bold, truncate("Host", colHostWidth), reset)
 
 		// Print separator between header and data
-		fmt.Printf("├%s┼%s┤\n",
+		fmt.Printf("├%s┼%s┼%s┤\n",
 			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
 			strings.Repeat("─", colHostWidth))
 
 		// Print data rows
@@ -320,14 +329,16 @@ func listInstances(args []string, config *Configuration) error {
 				name = "*" + name
 			}
 
-			fmt.Printf("│%s│%s│\n",
+			fmt.Printf("│%s│%s│%s│\n",
 				truncate(name, colNameWidth),
+				truncate(row.Instance.ID, colInstanceWidth),
 				truncate(row.Instance.Host, colHostWidth))
 		}
 
 		// Print bottom border
-		fmt.Printf("└%s┴%s┘\n",
+		fmt.Printf("└%s┴%s┴%s┘\n",
 			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
 			strings.Repeat("─", colHostWidth))
 	}
 

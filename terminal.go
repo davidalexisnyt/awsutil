@@ -28,6 +28,8 @@ func startSSMSession(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
+	fmt.Println()
+
 	// Handle instance lookup logic
 	var instance Instance
 	var currentProfile string
@@ -196,67 +198,75 @@ func startSSMSession(args []string, config *Configuration) error {
 			profileInfo.Instances = make(map[string]Instance)
 		}
 
-		// Try to get instance from saved configuration
-		if len(profileInfo.Instances) > 0 {
-			selectedInstance, err := selectInstanceByName(profileInfo, "")
-			if err == nil {
-				instance = selectedInstance
-			} else {
-				return fmt.Errorf("no default instance configured for profile '%s'", currentProfile)
-			}
+		// Try to get default instance from saved configuration
+		selectedInstance, err := selectInstanceByName(profileInfo, "")
+		if err == nil {
+			instance = selectedInstance
 		} else {
-			// Fallback to old Instance field for backward compatibility
-			if profileInfo.Instance != "" {
-				// Use old instance ID directly
-				commandArgs := []string{
-					"ssm",
-					"start-session",
-					"--target",
-					profileInfo.Instance,
-				}
-
-				if len(currentProfile) != 0 {
-					commandArgs = append(commandArgs, "--profile", currentProfile)
-				}
-
-				// Ensure that we're logged in before running the command.
-				if !isLoggedIn(currentProfile) {
-					loginArgs := []string{}
-					if len(currentProfile) != 0 {
-						loginArgs = append(loginArgs, "--profile", currentProfile)
-					}
-					login(loginArgs, config)
-				}
-
-				// Set up signal handling
-				signalChan := make(chan os.Signal, 1)
-				signal.Notify(signalChan, os.Interrupt)
-
-				defer func() {
-					signal.Stop(signalChan)
-				}()
-
-				select {
-				case <-signalChan:
-				default:
-				}
-
-				fmt.Println("\nStarting SSM session...")
-
-				command := exec.Command("aws", commandArgs...)
-				command.Stdout = os.Stdout
-				command.Stderr = os.Stderr
-				command.Stdin = os.Stdin
-
-				if err = command.Run(); err != nil {
-					return err
-				}
-
-				return nil
-			}
-
-			return fmt.Errorf("no instances configured for profile '%s'", currentProfile)
+			return fmt.Errorf("no default instance configured for profile '%s'", currentProfile)
 		}
+
+		// 	// Try to get instance from saved configuration
+		// 	if len(profileInfo.Instances) > 0 {
+		// 		selectedInstance, err := selectInstanceByName(profileInfo, "")
+		// 		if err == nil {
+		// 			instance = selectedInstance
+		// 		} else {
+		// 			return fmt.Errorf("no default instance configured for profile '%s'", currentProfile)
+		// 		}
+		// 	} else {
+		// 		// Fallback to old Instance field for backward compatibility
+		// 		if profileInfo.Instance != "" {
+		// 			// Use old instance ID directly
+		// 			commandArgs := []string{
+		// 				"ssm",
+		// 				"start-session",
+		// 				"--target",
+		// 				profileInfo.Instance,
+		// 			}
+
+		// 			if len(currentProfile) != 0 {
+		// 				commandArgs = append(commandArgs, "--profile", currentProfile)
+		// 			}
+
+		// 			// Ensure that we're logged in before running the command.
+		// 			if !isLoggedIn(currentProfile) {
+		// 				loginArgs := []string{}
+		// 				if len(currentProfile) != 0 {
+		// 					loginArgs = append(loginArgs, "--profile", currentProfile)
+		// 				}
+		// 				login(loginArgs, config)
+		// 			}
+
+		// 			// Set up signal handling
+		// 			signalChan := make(chan os.Signal, 1)
+		// 			signal.Notify(signalChan, os.Interrupt)
+
+		// 			defer func() {
+		// 				signal.Stop(signalChan)
+		// 			}()
+
+		// 			select {
+		// 			case <-signalChan:
+		// 			default:
+		// 			}
+
+		// 			fmt.Println("\nStarting SSM session...")
+
+		// 			command := exec.Command("aws", commandArgs...)
+		// 			command.Stdout = os.Stdout
+		// 			command.Stderr = os.Stderr
+		// 			command.Stdin = os.Stdin
+
+		// 			if err = command.Run(); err != nil {
+		// 				return err
+		// 			}
+
+		// 			return nil
+		// 		}
+
+		// 		return fmt.Errorf("no instances configured for profile '%s'", currentProfile)
+		// 	}
 	}
 
 	// Verify we have an instance ID
@@ -278,9 +288,11 @@ func startSSMSession(args []string, config *Configuration) error {
 	// Ensure that we're logged in before running the command.
 	if !isLoggedIn(currentProfile) {
 		loginArgs := []string{}
+
 		if len(currentProfile) != 0 {
 			loginArgs = append(loginArgs, "--profile", currentProfile)
 		}
+
 		login(loginArgs, config)
 	}
 

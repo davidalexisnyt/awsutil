@@ -19,10 +19,8 @@ type BastionLookup struct {
 
 type Profile struct {
 	Name            string              `json:"name,omitempty"`
-	Instance        string              `json:"instance,omitempty"`        // Deprecated: use DefaultInstance instead
 	DefaultInstance string              `json:"defaultInstance,omitempty"` // Default instance name
-	Bastion         Bastion             `json:"bastion,omitempty"`         // Deprecated: use Bastions instead
-	Bastions        map[string]Bastion  `json:"bastions,omitempty"`        // New: multiple named bastions
+	Bastions        map[string]Bastion  `json:"bastions,omitempty"`        // Multiple named bastions
 	DefaultBastion  string              `json:"defaultBastion,omitempty"`  // Default bastion name
 	Instances       map[string]Instance `json:"instances,omitempty"`       // Named EC2 instances
 }
@@ -74,9 +72,6 @@ func loadConfiguration(fileName string) (Configuration, error) {
 	if err := json.Unmarshal(configBytes, &config); err != nil {
 		return Configuration{}, fmt.Errorf("could not read config.json file")
 	}
-
-	// Migrate old single-bastion config to new multi-bastion format
-	migrateBastionConfig(&config)
 
 	// Initialize BastionLookup if nil
 	if config.BastionLookup == nil {
@@ -135,50 +130,6 @@ func loadConfiguration(fileName string) (Configuration, error) {
 	}
 
 	return config, nil
-}
-
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-func migrateBastionConfig(config *Configuration) {
-	if config.Profiles == nil {
-		config.Profiles = make(map[string]Profile)
-	}
-
-	for profileName, profile := range config.Profiles {
-		// Check if old Bastion field exists and has data, but Bastions map doesn't exist or is empty
-		if profile.Bastion.Instance != "" || profile.Bastion.Host != "" {
-			if profile.Bastions == nil {
-				profile.Bastions = make(map[string]Bastion)
-			}
-
-			// Only migrate if "default" doesn't already exist
-			if _, exists := profile.Bastions["default"]; !exists {
-				profile.Bastions["default"] = profile.Bastion
-
-				if profile.DefaultBastion == "" {
-					profile.DefaultBastion = "default"
-				}
-			}
-		}
-
-		// Initialize Instances map if nil
-		if profile.Instances == nil {
-			profile.Instances = make(map[string]Instance)
-		}
-
-		// Migrate old Instance field to DefaultInstance if needed
-		if profile.Instance != "" && profile.DefaultInstance == "" {
-			// Create a "default" entry in Instances map
-			profile.Instances["default"] = Instance{
-				Name:    "default",
-				ID:      profile.Instance,
-				Profile: profileName,
-				Host:    profile.Instance, // Placeholder - could be improved
-			}
-			profile.DefaultInstance = "default"
-		}
-
-		config.Profiles[profileName] = profile
-	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
