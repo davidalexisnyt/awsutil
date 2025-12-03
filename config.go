@@ -50,10 +50,14 @@ type RDSDatabase struct {
 }
 
 type EC2Instance struct {
-	Instance string `json:"Instance"`
-	Name     string `json:"Name"`
-	AZ       string `json:"AZ"`
-	Host     string `json:"Host"`
+	Instance     string `json:"Instance"`
+	Name         string `json:"Name"`
+	AZ           string `json:"AZ"`
+	Host         string `json:"Host"`
+	State        string `json:"State"`
+	InstanceType string `json:"Type"`
+	PublicIP     string `json:"PublicIP"`
+	LaunchTime   string `json:"LaunchTime"`
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -92,6 +96,7 @@ func loadConfiguration(fileName string) (Configuration, error) {
 				if instance.Profile == "" {
 					instance.Profile = profileName
 				}
+
 				// Update instance in profile
 				profile.Instances[instanceName] = instance
 			}

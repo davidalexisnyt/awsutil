@@ -10,13 +10,37 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+func formatLaunchTime(launchTimeStr string) string {
+	if launchTimeStr == "" {
+		return "(unknown)"
+	}
+
+	// Parse ISO8601 timestamp from AWS
+	t, err := time.Parse(time.RFC3339, launchTimeStr)
+	if err != nil {
+		// If parsing fails, return the original string truncated
+		if len(launchTimeStr) > 16 {
+			return launchTimeStr[:16]
+		}
+
+		return launchTimeStr
+	}
+
+	// Format as "YYYY-MM-DD HH:MM"
+	return t.Format("2006-01-02 15:04")
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func findInstances(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("instances find", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+
+	fmt.Println()
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances find [--profile <aws cli profile>] <filter string>")
@@ -42,7 +66,7 @@ func findInstances(args []string, config *Configuration) error {
 		"ec2",
 		"describe-instances",
 		"--query",
-		"Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value}",
+		"Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value,Host:PrivateIpAddress,State:State.Name,Type:InstanceType,PublicIP:PublicIpAddress,LaunchTime:LaunchTime}",
 		"--filters",
 		fmt.Sprintf("Name=tag:Name,Values=*%s*", filter),
 		"--output=json",
@@ -141,9 +165,11 @@ func findInstances(args []string, config *Configuration) error {
 			instanceName = "default"
 		}
 
-		// Query for host (private IP) - we'll use a simple approach for now
-		// In a full implementation, we'd query for the private IP
-		host := instanceID // Placeholder - could be improved to query for actual private IP
+		// Get host (private IP) from the query result
+		host := instanceList[0][0]["Host"]
+		if host == "" {
+			host = instanceID // Fallback to instance ID if no private IP available
+		}
 
 		profileInfo.Instances["default"] = Instance{
 			Name:    "default",
@@ -152,14 +178,186 @@ func findInstances(args []string, config *Configuration) error {
 			Host:    host,
 		}
 
-		// Set DefaultInstance to "default"
-		profileInfo.DefaultInstance = "default"
-
 		config.Profiles[currentProfile] = profileInfo
 	}
 
-	for i := range len(instanceList) {
-		fmt.Printf("    %s\t %s\n", instanceList[i][0]["Instance"], instanceList[i][0]["Name"])
+	// Format instances as a table
+	if len(instanceList) > 0 {
+		// Calculate maximum column widths
+		maxNameWidth := len("Name")
+		maxInstanceWidth := len("Instance ID")
+		maxHostWidth := len("Host")
+		maxStateWidth := len("State")
+		maxTypeWidth := len("Type")
+		maxPublicIPWidth := len("Public IP")
+		maxLaunchTimeWidth := len("Launch Time")
+
+		for i := range len(instanceList) {
+			name := instanceList[i][0]["Name"]
+
+			if name == "" {
+				name = "(no name)"
+			}
+
+			if len(name) > maxNameWidth {
+				maxNameWidth = len(name)
+			}
+
+			instanceID := instanceList[i][0]["Instance"]
+
+			if len(instanceID) > maxInstanceWidth {
+				maxInstanceWidth = len(instanceID)
+			}
+
+			host := instanceList[i][0]["Host"]
+
+			if host == "" {
+				host = "(no host)"
+			}
+
+			if len(host) > maxHostWidth {
+				maxHostWidth = len(host)
+			}
+
+			state := instanceList[i][0]["State"]
+
+			if state == "" {
+				state = "(unknown)"
+			}
+
+			if len(state) > maxStateWidth {
+				maxStateWidth = len(state)
+			}
+
+			instanceType := instanceList[i][0]["Type"]
+
+			if instanceType == "" {
+				instanceType = "(unknown)"
+			}
+
+			if len(instanceType) > maxTypeWidth {
+				maxTypeWidth = len(instanceType)
+			}
+
+			publicIP := instanceList[i][0]["PublicIP"]
+
+			if publicIP == "" {
+				publicIP = "(none)"
+			}
+
+			if len(publicIP) > maxPublicIPWidth {
+				maxPublicIPWidth = len(publicIP)
+			}
+
+			launchTime := formatLaunchTime(instanceList[i][0]["LaunchTime"])
+
+			if len(launchTime) > maxLaunchTimeWidth {
+				maxLaunchTimeWidth = len(launchTime)
+			}
+		}
+
+		// Add 2 characters padding for readability
+		const padding = 2
+		colNameWidth := maxNameWidth + padding
+		colInstanceWidth := maxInstanceWidth + padding
+		colHostWidth := maxHostWidth + padding
+		colStateWidth := maxStateWidth + padding
+		colTypeWidth := maxTypeWidth + padding
+		colPublicIPWidth := maxPublicIPWidth + padding
+		colLaunchTimeWidth := maxLaunchTimeWidth + padding
+
+		// Helper function to truncate string to width
+		truncate := func(s string, width int) string {
+			if len(s) > width {
+				return s[:width-3] + "..."
+			}
+
+			return s + strings.Repeat(" ", width-len(s))
+		}
+
+		// ANSI escape codes for bold
+		bold := "\033[1m"
+		reset := "\033[0m"
+
+		// Print top border
+		fmt.Printf("┌%s┬%s┬%s┬%s┬%s┬%s┬%s┐\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colStateWidth),
+			strings.Repeat("─", colTypeWidth),
+			strings.Repeat("─", colPublicIPWidth),
+			strings.Repeat("─", colLaunchTimeWidth))
+
+		// Print header row
+		fmt.Printf("│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│\n",
+			bold, truncate("Name", colNameWidth), reset,
+			bold, truncate("Instance ID", colInstanceWidth), reset,
+			bold, truncate("Host", colHostWidth), reset,
+			bold, truncate("State", colStateWidth), reset,
+			bold, truncate("Type", colTypeWidth), reset,
+			bold, truncate("Public IP", colPublicIPWidth), reset,
+			bold, truncate("Launch Time", colLaunchTimeWidth), reset)
+
+		// Print separator between header and data
+		fmt.Printf("├%s┼%s┼%s┼%s┼%s┼%s┼%s┤\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colStateWidth),
+			strings.Repeat("─", colTypeWidth),
+			strings.Repeat("─", colPublicIPWidth),
+			strings.Repeat("─", colLaunchTimeWidth))
+
+		// Print data rows
+		for i := range len(instanceList) {
+			name := instanceList[i][0]["Name"]
+			if name == "" {
+				name = "(no name)"
+			}
+
+			instanceID := instanceList[i][0]["Instance"]
+			host := instanceList[i][0]["Host"]
+			if host == "" {
+				host = "(no host)"
+			}
+
+			state := instanceList[i][0]["State"]
+			if state == "" {
+				state = "(unknown)"
+			}
+
+			instanceType := instanceList[i][0]["Type"]
+			if instanceType == "" {
+				instanceType = "(unknown)"
+			}
+
+			publicIP := instanceList[i][0]["PublicIP"]
+			if publicIP == "" {
+				publicIP = "(none)"
+			}
+
+			launchTime := formatLaunchTime(instanceList[i][0]["LaunchTime"])
+
+			fmt.Printf("│%s│%s│%s│%s│%s│%s│%s│\n",
+				truncate(name, colNameWidth),
+				truncate(instanceID, colInstanceWidth),
+				truncate(host, colHostWidth),
+				truncate(state, colStateWidth),
+				truncate(instanceType, colTypeWidth),
+				truncate(publicIP, colPublicIPWidth),
+				truncate(launchTime, colLaunchTimeWidth))
+		}
+
+		// Print bottom border
+		fmt.Printf("└%s┴%s┴%s┴%s┴%s┴%s┴%s┘\n",
+			strings.Repeat("─", colNameWidth),
+			strings.Repeat("─", colInstanceWidth),
+			strings.Repeat("─", colHostWidth),
+			strings.Repeat("─", colStateWidth),
+			strings.Repeat("─", colTypeWidth),
+			strings.Repeat("─", colPublicIPWidth),
+			strings.Repeat("─", colLaunchTimeWidth))
 	}
 
 	fmt.Println()
@@ -224,10 +422,12 @@ func listInstances(args []string, config *Configuration) error {
 					InstanceID:   instance.ID,
 				})
 			}
+
 			// Sort instances by name within this profile
 			sort.Slice(instances, func(i, j int) bool {
 				return instances[i].InstanceName < instances[j].InstanceName
 			})
+
 			profileGroups[profileName] = instances
 		}
 	}
@@ -240,9 +440,11 @@ func listInstances(args []string, config *Configuration) error {
 
 	// Get sorted list of profile names
 	var profileNames []string
+
 	for profileName := range profileGroups {
 		profileNames = append(profileNames, profileName)
 	}
+
 	sort.Strings(profileNames)
 
 	// Calculate maximum column widths from all instances
@@ -255,9 +457,11 @@ func listInstances(args []string, config *Configuration) error {
 		for _, row := range instances {
 			// Calculate name width (including "*" for default)
 			name := row.InstanceName
+
 			if row.IsDefault {
 				name = "*" + name
 			}
+
 			if len(name) > maxNameWidth {
 				maxNameWidth = len(name)
 			}
@@ -285,6 +489,7 @@ func listInstances(args []string, config *Configuration) error {
 		if len(s) > width {
 			return s[:width-3] + "..."
 		}
+
 		return s + strings.Repeat(" ", width-len(s))
 	}
 
@@ -302,6 +507,7 @@ func listInstances(args []string, config *Configuration) error {
 		if i > 0 {
 			fmt.Println()
 		}
+
 		fmt.Printf("%sProfile: %s%s\n", bold, profileName, reset)
 
 		// Print top border
@@ -325,6 +531,7 @@ func listInstances(args []string, config *Configuration) error {
 		// Print data rows
 		for _, row := range instances {
 			name := row.InstanceName
+
 			if row.IsDefault {
 				name = "*" + name
 			}
@@ -354,6 +561,8 @@ func addInstance(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
+
+	fmt.Println()
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>")
@@ -403,11 +612,199 @@ func addInstance(args []string, config *Configuration) error {
 		return fmt.Errorf("no EC2 instances found matching filter '%s'", filter)
 	}
 
-	// Display instances and let user select
+	// Display instances in a formatted table
 	fmt.Println("\nAvailable EC2 instances:")
+
+	// Calculate maximum column widths
+	maxNumWidth := len("#")
+	maxNameWidth := len("Name")
+	maxInstanceWidth := len("Instance ID")
+	maxHostWidth := len("Host")
+	maxStateWidth := len("State")
+	maxTypeWidth := len("Type")
+	maxPublicIPWidth := len("Public IP")
+	maxLaunchTimeWidth := len("Launch Time")
+
 	for i, inst := range instances {
-		fmt.Printf("  %2d: %s - %s\n", i+1, inst.Instance, inst.Name)
+		// Number width (for selection)
+		numStr := strconv.Itoa(i + 1)
+		if len(numStr) > maxNumWidth {
+			maxNumWidth = len(numStr)
+		}
+
+		name := inst.Name
+		if name == "" {
+			name = "(no name)"
+		}
+
+		if len(name) > maxNameWidth {
+			maxNameWidth = len(name)
+		}
+
+		if len(inst.Instance) > maxInstanceWidth {
+			maxInstanceWidth = len(inst.Instance)
+		}
+
+		host := inst.Host
+		if host == "" {
+			host = "(no host)"
+		}
+
+		if len(host) > maxHostWidth {
+			maxHostWidth = len(host)
+		}
+
+		state := inst.State
+		if state == "" {
+			state = "(unknown)"
+		}
+
+		if len(state) > maxStateWidth {
+			maxStateWidth = len(state)
+		}
+
+		instanceType := inst.InstanceType
+		if instanceType == "" {
+			instanceType = "(unknown)"
+		}
+
+		if len(instanceType) > maxTypeWidth {
+			maxTypeWidth = len(instanceType)
+		}
+
+		publicIP := inst.PublicIP
+		if publicIP == "" {
+			publicIP = "(none)"
+		}
+
+		if len(publicIP) > maxPublicIPWidth {
+			maxPublicIPWidth = len(publicIP)
+		}
+
+		launchTime := formatLaunchTime(inst.LaunchTime)
+		if len(launchTime) > maxLaunchTimeWidth {
+			maxLaunchTimeWidth = len(launchTime)
+		}
 	}
+
+	// Add 2 characters padding for readability
+	const padding = 2
+	colNumWidth := maxNumWidth + padding
+	colNameWidth := maxNameWidth + padding
+	colInstanceWidth := maxInstanceWidth + padding
+	colHostWidth := maxHostWidth + padding
+	colStateWidth := maxStateWidth + padding
+	colTypeWidth := maxTypeWidth + padding
+	colPublicIPWidth := maxPublicIPWidth + padding
+	colLaunchTimeWidth := maxLaunchTimeWidth + padding
+
+	// Helper function to truncate string to width
+	truncate := func(s string, width int) string {
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// Helper function to format integer to string with padding
+	formatInt := func(n int, width int) string {
+		s := strconv.Itoa(n)
+
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// ANSI escape codes for bold
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	// Print top border
+	fmt.Printf("┌%s┬%s┬%s┬%s┬%s┬%s┬%s┬%s┐\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
+
+	// Print header row
+	fmt.Printf("│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│\n",
+		bold, truncate("#", colNumWidth), reset,
+		bold, truncate("Name", colNameWidth), reset,
+		bold, truncate("Instance ID", colInstanceWidth), reset,
+		bold, truncate("Host", colHostWidth), reset,
+		bold, truncate("State", colStateWidth), reset,
+		bold, truncate("Type", colTypeWidth), reset,
+		bold, truncate("Public IP", colPublicIPWidth), reset,
+		bold, truncate("Launch Time", colLaunchTimeWidth), reset)
+
+	// Print separator between header and data
+	fmt.Printf("├%s┼%s┼%s┼%s┼%s┼%s┼%s┼%s┤\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
+
+	// Print data rows
+	for i, inst := range instances {
+		name := inst.Name
+		if name == "" {
+			name = "(no name)"
+		}
+
+		host := inst.Host
+		if host == "" {
+			host = "(no host)"
+		}
+
+		state := inst.State
+		if state == "" {
+			state = "(unknown)"
+		}
+
+		instanceType := inst.InstanceType
+		if instanceType == "" {
+			instanceType = "(unknown)"
+		}
+
+		publicIP := inst.PublicIP
+		if publicIP == "" {
+			publicIP = "(none)"
+		}
+
+		launchTime := formatLaunchTime(inst.LaunchTime)
+
+		fmt.Printf("│%s│%s│%s│%s│%s│%s│%s│%s│\n",
+			formatInt(i+1, colNumWidth),
+			truncate(name, colNameWidth),
+			truncate(inst.Instance, colInstanceWidth),
+			truncate(host, colHostWidth),
+			truncate(state, colStateWidth),
+			truncate(instanceType, colTypeWidth),
+			truncate(publicIP, colPublicIPWidth),
+			truncate(launchTime, colLaunchTimeWidth))
+	}
+
+	// Print bottom border
+	fmt.Printf("└%s┴%s┴%s┴%s┴%s┴%s┴%s┴%s┘\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
 
 	fmt.Print("\nSelect instance number: ")
 	instSelection, _ := reader.ReadString('\n')
@@ -433,6 +830,7 @@ func addInstance(args []string, config *Configuration) error {
 		if targetInstanceName == "" {
 			// Generate a default name from instance name
 			targetInstanceName = selectedInstance.Name
+
 			if targetInstanceName == "" {
 				targetInstanceName = fmt.Sprintf("instance-%d", len(profileInfo.Instances)+1)
 			}
@@ -445,7 +843,7 @@ func addInstance(args []string, config *Configuration) error {
 	}
 
 	// Get host (private IP)
-	host := selectedInstance.Name
+	host := selectedInstance.Host
 	if host == "" {
 		// Fallback to instance ID if no private IP available
 		host = selectedInstance.Instance
@@ -476,6 +874,8 @@ func updateInstance(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
+
+	fmt.Println()
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances update [--profile <aws cli profile>] [--name <instance name>] [<filter string>]")
@@ -538,6 +938,7 @@ func updateInstance(args []string, config *Configuration) error {
 		fmt.Print("Enter instance filter string (or press Enter to use existing instance ID): ")
 		filterInput, _ := reader.ReadString('\n')
 		filter = strings.TrimSpace(filterInput)
+
 		if filter == "" {
 			// Use existing instance ID as default filter
 			filter = existingInstance.ID
@@ -555,15 +956,198 @@ func updateInstance(args []string, config *Configuration) error {
 		return fmt.Errorf("no EC2 instances found matching filter '%s'", filter)
 	}
 
-	// Display instances and let user select
+	// Display instances in a formatted table
 	fmt.Println("\nAvailable EC2 instances:")
+
+	// Calculate maximum column widths
+	maxNumWidth := len("#")
+	maxNameWidth := len("Name")
+	maxInstanceWidth := len("Instance ID")
+	maxHostWidth := len("Host")
+	maxStateWidth := len("State")
+	maxTypeWidth := len("Type")
+	maxPublicIPWidth := len("Public IP")
+	maxLaunchTimeWidth := len("Launch Time")
+
 	for i, inst := range instances {
-		fmt.Printf("  %2d: %s - %s", i+1, inst.Instance, inst.Name)
-		if inst.Host != "" {
-			fmt.Printf(" (%s)", inst.Host)
+		// Number width (for selection)
+		numStr := strconv.Itoa(i + 1)
+		if len(numStr) > maxNumWidth {
+			maxNumWidth = len(numStr)
 		}
-		fmt.Println()
+
+		name := inst.Name
+		if name == "" {
+			name = "(no name)"
+		}
+
+		if len(name) > maxNameWidth {
+			maxNameWidth = len(name)
+		}
+
+		if len(inst.Instance) > maxInstanceWidth {
+			maxInstanceWidth = len(inst.Instance)
+		}
+
+		host := inst.Host
+		if host == "" {
+			host = "(no host)"
+		}
+
+		if len(host) > maxHostWidth {
+			maxHostWidth = len(host)
+		}
+
+		state := inst.State
+		if state == "" {
+			state = "(unknown)"
+		}
+
+		if len(state) > maxStateWidth {
+			maxStateWidth = len(state)
+		}
+
+		instanceType := inst.InstanceType
+		if instanceType == "" {
+			instanceType = "(unknown)"
+		}
+
+		if len(instanceType) > maxTypeWidth {
+			maxTypeWidth = len(instanceType)
+		}
+
+		publicIP := inst.PublicIP
+		if publicIP == "" {
+			publicIP = "(none)"
+		}
+
+		if len(publicIP) > maxPublicIPWidth {
+			maxPublicIPWidth = len(publicIP)
+		}
+
+		launchTime := formatLaunchTime(inst.LaunchTime)
+		if len(launchTime) > maxLaunchTimeWidth {
+			maxLaunchTimeWidth = len(launchTime)
+		}
 	}
+
+	// Add 2 characters padding for readability
+	const padding = 2
+	colNumWidth := maxNumWidth + padding
+	colNameWidth := maxNameWidth + padding
+	colInstanceWidth := maxInstanceWidth + padding
+	colHostWidth := maxHostWidth + padding
+	colStateWidth := maxStateWidth + padding
+	colTypeWidth := maxTypeWidth + padding
+	colPublicIPWidth := maxPublicIPWidth + padding
+	colLaunchTimeWidth := maxLaunchTimeWidth + padding
+
+	// Helper function to truncate string to width
+	truncate := func(s string, width int) string {
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// Helper function to format integer to string with padding
+	formatInt := func(n int, width int) string {
+		s := strconv.Itoa(n)
+		if len(s) > width {
+			return s[:width-3] + "..."
+		}
+
+		return s + strings.Repeat(" ", width-len(s))
+	}
+
+	// ANSI escape codes for bold
+	bold := "\033[1m"
+	reset := "\033[0m"
+
+	// Print top border
+	fmt.Printf("┌%s┬%s┬%s┬%s┬%s┬%s┬%s┬%s┐\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
+
+	// Print header row
+	fmt.Printf("│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│%s%s%s│\n",
+		bold, truncate("#", colNumWidth), reset,
+		bold, truncate("Name", colNameWidth), reset,
+		bold, truncate("Instance ID", colInstanceWidth), reset,
+		bold, truncate("Host", colHostWidth), reset,
+		bold, truncate("State", colStateWidth), reset,
+		bold, truncate("Type", colTypeWidth), reset,
+		bold, truncate("Public IP", colPublicIPWidth), reset,
+		bold, truncate("Launch Time", colLaunchTimeWidth), reset)
+
+	// Print separator between header and data
+	fmt.Printf("├%s┼%s┼%s┼%s┼%s┼%s┼%s┼%s┤\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
+
+	// Print data rows
+	for i, inst := range instances {
+		name := inst.Name
+		if name == "" {
+			name = "(no name)"
+		}
+
+		host := inst.Host
+		if host == "" {
+			host = "(no host)"
+		}
+
+		state := inst.State
+		if state == "" {
+			state = "(unknown)"
+		}
+
+		instanceType := inst.InstanceType
+		if instanceType == "" {
+			instanceType = "(unknown)"
+		}
+
+		publicIP := inst.PublicIP
+		if publicIP == "" {
+			publicIP = "(none)"
+		}
+
+		launchTime := formatLaunchTime(inst.LaunchTime)
+
+		fmt.Printf("│%s│%s│%s│%s│%s│%s│%s│%s│\n",
+			formatInt(i+1, colNumWidth),
+			truncate(name, colNameWidth),
+			truncate(inst.Instance, colInstanceWidth),
+			truncate(host, colHostWidth),
+			truncate(state, colStateWidth),
+			truncate(instanceType, colTypeWidth),
+			truncate(publicIP, colPublicIPWidth),
+			truncate(launchTime, colLaunchTimeWidth))
+	}
+
+	// Print bottom border
+	fmt.Printf("└%s┴%s┴%s┴%s┴%s┴%s┴%s┴%s┘\n",
+		strings.Repeat("─", colNumWidth),
+		strings.Repeat("─", colNameWidth),
+		strings.Repeat("─", colInstanceWidth),
+		strings.Repeat("─", colHostWidth),
+		strings.Repeat("─", colStateWidth),
+		strings.Repeat("─", colTypeWidth),
+		strings.Repeat("─", colPublicIPWidth),
+		strings.Repeat("─", colLaunchTimeWidth))
 
 	fmt.Print("\nSelect instance number: ")
 	instSelection, _ := reader.ReadString('\n')

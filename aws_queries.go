@@ -149,7 +149,7 @@ func queryEC2Instances(profile string, filter string) ([]EC2Instance, error) {
 		"ec2",
 		"describe-instances",
 		"--query",
-		"Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value,Host:PrivateIpAddress}",
+		"Reservations[*].Instances[*].{Instance:InstanceId,AZ:Placement.AvailabilityZone,Name:Tags[?Key=='Name']|[0].Value,Host:PrivateIpAddress,State:State.Name,Type:InstanceType,PublicIP:PublicIpAddress,LaunchTime:LaunchTime}",
 		"--filters",
 		fmt.Sprintf("Name=tag:Name,Values=*%s*", filter),
 		"--output=json",
