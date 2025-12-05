@@ -1,12 +1,23 @@
 awsdo instances - Manage EC2 instances
 
 USAGE:
-    awsdo instances find [--profile <aws cli profile>] <filter string>
+    awsdo instances find [--profile <aws cli profile>] [--filter <filter text>]
     awsdo instances list [--profile <aws cli profile>]
     awsdo instances ls [--profile <aws cli profile>]
-    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>
+    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] [--filter <filter text>]
     awsdo instances remove [--profile <aws cli profile>] [--name <instance name>]
     awsdo instances rm [--profile <aws cli profile>] [--name <instance name>]
+
+    # Linux-style commands (alternative syntax)
+    awsdo ls instances [--profile <aws cli profile>]
+    awsdo list instances [--profile <aws cli profile>]
+    awsdo ls bastions [--profile <aws cli profile>]
+    awsdo list bastions [--profile <aws cli profile>]
+    awsdo add instance [--profile <aws cli profile>] [--name <instance name>] [--filter <filter text>]
+    awsdo add bastion [--profile <aws cli profile>]
+    awsdo rm instance [--profile <aws cli profile>] [--name <instance name>]
+    awsdo rm bastion [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo find instance [--profile <aws cli profile>] [--filter <filter text>]
 
 DESCRIPTION:
     The instances command provides subcommands to find and manage EC2 instances.
@@ -34,12 +45,23 @@ SUBCOMMANDS:
 OPTIONS:
     --profile, -p    AWS CLI profile to use
     --name, -n       Instance name (for add and remove commands)
+    --filter, -f     Filter text to match against instance Name tags (for find and add commands)
 
 FIND COMMAND:
     Finds EC2 instances whose Name tag contains the specified filter string.
     Displays instance ID and name for each matching instance. If exactly one
     instance is found (and it's not a bastion), it is automatically saved as
     the default instance for the profile.
+
+    The filter can be specified using the --filter or -f flag. If the filter
+    is not provided, you will be prompted to enter it interactively.
+
+    Examples:
+        awsdo instances find --filter example
+        awsdo instances find -f example
+        awsdo instances find -p dev -f myapp
+        awsdo instances find -p dev    # Will prompt for filter
+        awsdo find instance -f example
 
 LIST COMMAND:
     Lists all configured instances for the specified profile in a vertical format,
@@ -54,6 +76,16 @@ ADD COMMAND:
     3. Prompts for instance name (or uses --name flag if provided)
     4. Saves the instance configuration
 
+    The filter can be specified using the --filter or -f flag. If the filter
+    is not provided, you will be prompted to enter it interactively.
+
+    Examples:
+        awsdo instances add --filter example
+        awsdo instances add -f example -n myinstance
+        awsdo instances add -p dev -f myapp
+        awsdo instances add -p dev    # Will prompt for filter
+        awsdo add instance -f example
+
 REMOVE COMMAND:
     Removes a named instance from the configuration:
     1. Prompts for instance name (or uses --name flag if provided)
@@ -61,6 +93,10 @@ REMOVE COMMAND:
     3. Asks for confirmation before removal
     4. Clears default instance if the removed instance was the default
 
-ARGUMENTS:
-    filter string    String to match against instance Name tags (contains match)
+NOTES:
+    - The filter text matches instance Name tags using a "contains" match
+    - Both traditional (instances find) and Linux-style (find instance) command
+      patterns are supported
+    - When using Linux-style commands, you can use either singular (instance) or
+      plural (instances) forms
 

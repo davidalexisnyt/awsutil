@@ -14,6 +14,12 @@ COMMANDS:
     docs        Display the full documentation in a web page
     help        Show help information
 
+    # Linux-style commands (alternative syntax)
+    ls, list    List instances or bastions (e.g., 'ls instances', 'list bastions')
+    add         Add an instance or bastion (e.g., 'add instance', 'add bastion')
+    rm          Remove an instance or bastion (e.g., 'rm instance', 'rm bastion')
+    find        Find instances (e.g., 'find instance')
+
 For detailed help on a specific command, use:
     awsdo help <command>
 

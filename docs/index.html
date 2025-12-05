@@ -138,7 +138,8 @@
           <li><code>login</code> - Log in to AWS SSO</li>
           <li>
             <code>instances</code> - Manage EC2 instances (find, list, add,
-            remove)
+            remove). Also supports Linux-style commands: <code>ls instances</code>,
+            <code>find instance</code>, <code>add instance</code>, <code>rm instance</code>
           </li>
           <li>
             <code>terminal</code> - Start an SSM terminal session to an EC2
@@ -150,7 +151,8 @@
           </li>
           <li>
             <code>bastions</code> - Manage bastion hosts (list, add, update,
-            remove)
+            remove). Also supports Linux-style commands: <code>ls bastions</code>,
+            <code>add bastion</code>, <code>rm bastion</code>
           </li>
           <li>
             <code>repl</code> - Start interactive REPL mode for convenient
@@ -276,12 +278,12 @@
             There is no need to log in before using another command.
             <code>awsdo</code> will see that we're not currently logged in and
             will perform the login process before the command that was run. e.g.
-            Let's say we run <code>awsdo instances find myapp</code> without
-            first running <code>awsdo login</code>, we'll first see the AWS
-            login page get launched. Once authentication is done, the
-            <code>instances find</code> command will be run, listing any
-            existing instances with names containing "myapp" (we'll go deeper
-            into the <code>instances</code> command later).
+            Let's say we run <code>awsdo instances find -f myapp</code> without
+          first running <code>awsdo login</code>, we'll first see the AWS
+          login page get launched. Once authentication is done, the
+          <code>instances find</code> command will be run, listing any
+          existing instances with names containing "myapp" (we'll go deeper
+          into the <code>instances</code> command later).
           </li>
           <li>
             Heck, we don't even need to ever run the
@@ -296,6 +298,14 @@
           The <code>instances</code> command provides several subcommands to
           find and manage EC2 instances. Instances can be named and stored in
           configuration for easy access.
+        </p>
+
+        <p>
+          <strong>Command Patterns:</strong> You can use either the traditional
+          AWS CLI-style pattern (<code>instances find</code>) or the Linux-style
+          pattern (<code>find instance</code>). Both patterns are fully supported
+          and work identically. The Linux-style commands accept both singular
+          (<code>instance</code>) and plural (<code>instances</code>) forms.
         </p>
 
         <h4>Finding EC2 Instances</h4>
@@ -316,14 +326,33 @@
           process with awsdo:
         </p>
 
-        <pre><code class="language-shell">awsdo instances find --profile dev example</code></pre>
+        <pre><code class="language-shell">awsdo instances find --profile dev --filter example</code></pre>
 
         <p>
           But wait... <code>dev</code> was already set as our default profile
           from our previous commands, so we can just use:
         </p>
 
-        <pre><code class="language-shell">awsdo instances find example</code></pre>
+        <pre><code class="language-shell">awsdo instances find --filter example</code></pre>
+
+        <p>
+          Or use the short form of the filter flag:
+        </p>
+
+        <pre><code class="language-shell">awsdo instances find -f example</code></pre>
+
+        <p>
+          If you don't provide the filter flag, you'll be prompted to enter it:
+        </p>
+
+        <pre><code class="language-shell">awsdo instances find -p dev
+Enter filter text: example</code></pre>
+
+        <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo find instance -f example</code></pre>
 
         <p>This will print out something like this:</p>
 
@@ -371,6 +400,14 @@ Profile: prod
         <pre><code class="language-shell">awsdo instances list -p dev</code></pre>
 
         <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo ls instances
+awsdo list instances
+awsdo ls instances -p dev</code></pre>
+
+        <p>
           This displays all configured instances, showing name, instance ID,
           profile, and host. The default instance (if set) will be marked with
           "(default)".
@@ -380,11 +417,28 @@ Profile: prod
 
         <p>To add a new named instance to your configuration:</p>
 
-        <pre><code class="language-shell">awsdo instances add -p dev example</code></pre>
+        <pre><code class="language-shell">awsdo instances add -p dev --filter example</code></pre>
 
         <p>Or with a pre-specified name:</p>
 
-        <pre><code class="language-shell">awsdo instances add -p dev -n myapp example</code></pre>
+        <pre><code class="language-shell">awsdo instances add -p dev -n myapp -f example</code></pre>
+
+        <p>Or use the short form of the filter flag:</p>
+
+        <pre><code class="language-shell">awsdo instances add -p dev -f example</code></pre>
+
+        <p>
+          If you don't provide the filter flag, you'll be prompted to enter it:
+        </p>
+
+        <pre><code class="language-shell">awsdo instances add -p dev
+Enter filter text: example</code></pre>
+
+        <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo add instance -p dev -f example</code></pre>
 
         <p>This command will:</p>
 
@@ -411,6 +465,12 @@ Profile: prod
         <p>Or simply:</p>
 
         <pre><code class="language-shell">awsdo instances remove -p dev</code></pre>
+
+        <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo rm instance -p dev -n myapp</code></pre>
 
         <p>
           The command will prompt for the instance name if not provided, display
@@ -579,6 +639,14 @@ aws ssm --profile dev start-session --target i-0c15ff251abee847f</code></pre>
         <pre><code class="language-shell">awsdo bastions</code></pre>
 
         <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo ls bastions
+awsdo list bastions
+awsdo ls bastions -p dev</code></pre>
+
+        <p>
           This will display all configured bastions, showing something like
           this:
         </p>
@@ -619,6 +687,12 @@ Profile: prod
         </p>
 
         <pre><code class="language-shell">awsdo bastions add -p &lt;profile&gt;</code></pre>
+
+        <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo add bastion -p &lt;profile&gt;</code></pre>
 
         <p>
           This command will do all the heavy lifting of running multiple AWS
@@ -702,6 +776,12 @@ Profile: prod
         <p>Or simply:</p>
 
         <pre><code class="language-shell">awsdo bastions remove -p &lt;profile&gt;</code></pre>
+
+        <p>
+          You can also use the Linux-style command pattern:
+        </p>
+
+        <pre><code class="language-shell">awsdo rm bastion -p &lt;profile&gt; -n &lt;bastion-name&gt;</code></pre>
 
         <p>
           This will prompt you for the bastion name if not provided. The command
@@ -793,12 +873,27 @@ Profile: prod
             common operations:
             <ul>
               <li>
-                <code>ls</code> - Shortcut for <code>instances list</code> or
-                <code>bastions list</code>
+                <code>ls instances</code> or <code>list instances</code> - List
+                configured instances
               </li>
               <li>
-                <code>rm</code> - Shortcut for <code>instances remove</code> or
-                <code>bastions remove</code>
+                <code>ls bastions</code> or <code>list bastions</code> - List
+                configured bastions
+              </li>
+              <li>
+                <code>add instance</code> - Add a new instance
+              </li>
+              <li>
+                <code>add bastion</code> - Add a new bastion
+              </li>
+              <li>
+                <code>rm instance</code> - Remove an instance
+              </li>
+              <li>
+                <code>rm bastion</code> - Remove a bastion
+              </li>
+              <li>
+                <code>find instance</code> - Find instances
               </li>
               <li>
                 <code>up</code> - Shortcut for <code>bastions update</code>
@@ -830,10 +925,14 @@ Profile: prod
         <p>In REPL mode, you can run commands like:</p>
 
         <pre><code>&gt;&gt;&gt; login -p dev
-&gt;&gt;&gt; instances find myapp
+&gt;&gt;&gt; instances find -f myapp
 &gt;&gt;&gt; instances ls
+&gt;&gt;&gt; ls instances
+&gt;&gt;&gt; find instance -f myapp
+&gt;&gt;&gt; add instance -f example
 &gt;&gt;&gt; terminal myinstance
 &gt;&gt;&gt; bastions ls
+&gt;&gt;&gt; ls bastions
 &gt;&gt;&gt; bastion
 &gt;&gt;&gt; help instances
 &gt;&gt;&gt; quit</code></pre>
@@ -872,7 +971,7 @@ awsdo terminal</code></pre>
           can add the instance to your configuration first, then connect:
         </p>
 
-        <pre><code class="language-shell">awsdo instances add -p dev -n myinstance example
+        <pre><code class="language-shell">awsdo instances add -p dev -n myinstance -f example
 awsdo terminal myinstance</code></pre>
 
         <p>
@@ -896,7 +995,7 @@ awsdo terminal myinstance</code></pre>
           <em>filter</em> parameter ensures that we get just one instance back:
         </p>
 
-        <pre><code class="language-shell">awsdo instances find --profile spg very-specific-prefix
+        <pre><code class="language-shell">awsdo instances find --profile spg --filter very-specific-prefix
 awsdo terminal</code></pre>
 
         <p>
