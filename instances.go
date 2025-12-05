@@ -39,11 +39,13 @@ func findInstances(args []string, config *Configuration) error {
 	flagSet := flag.NewFlagSet("instances find", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
+	filterFlag := flagSet.String("filter", "", "--filter <filter text>")
+	filterShort := flagSet.String("f", "", "--filter <filter text>")
 
 	fmt.Println()
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsdo instances find [--profile <aws cli profile>] <filter string>")
+		fmt.Println("USAGE:\n    awsdo instances find [--profile <aws cli profile>] [--filter <filter text>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -51,12 +53,21 @@ func findInstances(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	if len(flagSet.Args()) == 0 {
-		flagSet.Usage()
-		return fmt.Errorf("must specify instance filter string")
+	var filter string
+	if *filterFlag != "" {
+		filter = *filterFlag
+	} else if *filterShort != "" {
+		filter = *filterShort
+	} else {
+		// Prompt user for filter text
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Print("Enter filter text: ")
+		filterInput, _ := reader.ReadString('\n')
+		filter = strings.TrimSpace(filterInput)
+		if filter == "" {
+			return fmt.Errorf("filter text cannot be empty")
+		}
 	}
-
-	filter := flagSet.Args()[0]
 	currentProfile, err := ensureProfile(config, profile, profileShort)
 	if err != nil {
 		return err
@@ -561,11 +572,13 @@ func addInstance(args []string, config *Configuration) error {
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
+	filterFlag := flagSet.String("filter", "", "--filter <filter text>")
+	filterShort := flagSet.String("f", "", "--filter <filter text>")
 
 	fmt.Println()
 
 	flagSet.Usage = func() {
-		fmt.Println("USAGE:\n    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] <filter string>")
+		fmt.Println("USAGE:\n    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] [--filter <filter text>]")
 	}
 
 	if err := flagSet.Parse(args); err != nil {
@@ -573,12 +586,6 @@ func addInstance(args []string, config *Configuration) error {
 		return fmt.Errorf("failed to parse options")
 	}
 
-	if len(flagSet.Args()) == 0 {
-		flagSet.Usage()
-		return fmt.Errorf("must specify instance filter string")
-	}
-
-	filter := flagSet.Args()[0]
 	currentProfile, err := ensureProfile(config, profile, profileShort)
 	if err != nil {
 		return err
@@ -600,6 +607,22 @@ func addInstance(args []string, config *Configuration) error {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
+
+	// Get filter text
+	var filter string
+	if *filterFlag != "" {
+		filter = *filterFlag
+	} else if *filterShort != "" {
+		filter = *filterShort
+	} else {
+		// Prompt user for filter text
+		fmt.Print("Enter filter text: ")
+		filterInput, _ := reader.ReadString('\n')
+		filter = strings.TrimSpace(filterInput)
+		if filter == "" {
+			return fmt.Errorf("filter text cannot be empty")
+		}
+	}
 
 	// Query EC2 instances
 	fmt.Println("\nQuerying EC2 instances...")
