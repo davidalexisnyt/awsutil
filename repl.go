@@ -458,6 +458,69 @@ func executeREPLCommand(command string, args []string, config *Configuration) er
 	case "clear", "cls", "clr", ".c":
 		fmt.Print(clearScreen)
 		return nil
+	case "ls", "list":
+		if len(args) < 1 {
+			fmt.Println("Usage: ls <instances|bastions> [options]")
+			fmt.Println("   or: list <instances|bastions> [options]")
+			return nil
+		}
+		object := strings.ToLower(args[0])
+		switch object {
+		case "instances", "instance":
+			return listInstances(args[1:], config)
+		case "bastions", "bastion":
+			return listBastions(args[1:], config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'ls instances' or 'ls bastions'")
+			return nil
+		}
+	case "add":
+		if len(args) < 1 {
+			fmt.Println("Usage: add <instance|bastion> [options]")
+			return nil
+		}
+		object := strings.ToLower(args[0])
+		switch object {
+		case "instance", "instances":
+			return addInstance(args[1:], config)
+		case "bastion", "bastions":
+			return addBastion(args[1:], config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'add instance' or 'add bastion'")
+			return nil
+		}
+	case "rm":
+		if len(args) < 1 {
+			fmt.Println("Usage: rm <instance|bastion> [options]")
+			return nil
+		}
+		object := strings.ToLower(args[0])
+		switch object {
+		case "instance", "instances":
+			return removeInstance(args[1:], config)
+		case "bastion", "bastions":
+			return removeBastion(args[1:], config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'rm instance' or 'rm bastion'")
+			return nil
+		}
+	case "find":
+		if len(args) < 1 {
+			fmt.Println("Usage: find <instance> [options]")
+			return nil
+		}
+		object := strings.ToLower(args[0])
+		switch object {
+		case "instance", "instances":
+			return findInstances(args[1:], config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'find instance'")
+			return nil
+		}
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'help' to see available commands.")

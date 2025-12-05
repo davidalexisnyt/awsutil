@@ -104,6 +104,69 @@ func main() {
 		return
 	case "init":
 		err = initCommand(&config)
+	case "ls", "list":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: awsdo ls <instances|bastions> [options]")
+			fmt.Println("   or: awsdo list <instances|bastions> [options]")
+			os.Exit(1)
+		}
+		object := strings.ToLower(os.Args[2])
+		switch object {
+		case "instances", "instance":
+			err = listInstances(os.Args[3:], &config)
+		case "bastions", "bastion":
+			err = listBastions(os.Args[3:], &config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'awsdo ls instances' or 'awsdo ls bastions'")
+			os.Exit(1)
+		}
+	case "add":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: awsdo add <instance|bastion> [options]")
+			os.Exit(1)
+		}
+		object := strings.ToLower(os.Args[2])
+		switch object {
+		case "instance", "instances":
+			err = addInstance(os.Args[3:], &config)
+		case "bastion", "bastions":
+			err = addBastion(os.Args[3:], &config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'awsdo add instance' or 'awsdo add bastion'")
+			os.Exit(1)
+		}
+	case "rm":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: awsdo rm <instance|bastion> [options]")
+			os.Exit(1)
+		}
+		object := strings.ToLower(os.Args[2])
+		switch object {
+		case "instance", "instances":
+			err = removeInstance(os.Args[3:], &config)
+		case "bastion", "bastions":
+			err = removeBastion(os.Args[3:], &config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'awsdo rm instance' or 'awsdo rm bastion'")
+			os.Exit(1)
+		}
+	case "find":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: awsdo find <instance> [options]")
+			os.Exit(1)
+		}
+		object := strings.ToLower(os.Args[2])
+		switch object {
+		case "instance", "instances":
+			err = findInstances(os.Args[3:], &config)
+		default:
+			fmt.Printf("Invalid object: %s\n", object)
+			fmt.Println("Use 'awsdo find instance'")
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'awsdo help' to see available commands.")
