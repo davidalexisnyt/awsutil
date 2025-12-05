@@ -15,6 +15,8 @@ import (
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listBastions(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("bastions list", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -225,6 +227,8 @@ func listBastions(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func addBastion(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("bastions add", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -417,10 +421,13 @@ func addBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func updateBastion(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("bastions update", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	bastionName := flagSet.String("name", "", "--name <bastion name>")
+	bastionNameShort := flagSet.String("n", "", "--name <bastion name>")
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo bastions update [--profile <aws cli profile>] [--name <bastion name>]")
@@ -451,9 +458,15 @@ func updateBastion(args []string, config *Configuration) error {
 
 	// Get bastion name
 	var targetBastionName string
-	if *bastionName != "" {
+
+	switch {
+	case *bastionName != "":
 		targetBastionName = *bastionName
-	} else {
+	case *bastionNameShort != "":
+		targetBastionName = *bastionNameShort
+	case flagSet.NArg() > 0:
+		targetBastionName = flagSet.Arg(0)
+	default:
 		// Prompt for bastion name
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("Enter bastion name to update: ")
@@ -619,16 +632,13 @@ func updateBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func startBastionTunnel(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	bastionNameFull := flagSet.String("name", "", "--name <bastion name>")
 	bastionNameShort := flagSet.String("n", "", "-n <bastion name>")
-	// bastionInstsance := flagSet.String("instance", "", "--instance <aws instance ID>")
-	// bastionHost := flagSet.String("host", "", "--host <bastion host name>")
-	// bastionPort := flagSet.Int("port", 0, "--port <port to forward>")
-	// bastionLocalPort := flagSet.Int("local", 0, "--local <local port>")
-	// bastionName := flagSet.String("bastionName", "", "bastionName")
 
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:")
@@ -753,47 +763,6 @@ func startBastionTunnel(args []string, config *Configuration) error {
 		}
 	}
 
-	// // Override with command line arguments if provided
-	// if len(*bastionInstsance) != 0 {
-	// 	bastion.Instance = *bastionInstsance
-	// }
-
-	// if len(*bastionHost) != 0 {
-	// 	bastion.Host = *bastionHost
-	// }
-
-	// if *bastionPort != 0 {
-	// 	bastion.Port = *bastionPort
-	// }
-
-	// if *bastionLocalPort != 0 {
-	// 	bastion.LocalPort = *bastionLocalPort
-	// }
-
-	// // Verify required configuration
-	// if bastion.Instance == "" {
-	// 	return fmt.Errorf("bastion instance ID must be specified")
-	// }
-
-	// if bastion.Host == "" {
-	// 	return fmt.Errorf("bastion host must be specified")
-	// }
-
-	// if bastion.Port == 0 {
-	// 	return fmt.Errorf("remote port must be specified")
-	// }
-
-	// if bastion.LocalPort == 0 {
-	// 	// Auto-assign local port if not specified
-	// 	localPort, err := findAvailableLocalPort(7000)
-
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to find available local port: %v", err)
-	// 	}
-
-	// 	bastion.LocalPort = localPort
-	// }
-
 	// Check if Session Manager plugin is installed
 	pluginCheck := exec.Command("session-manager-plugin")
 
@@ -888,6 +857,8 @@ func startBastionTunnel(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeBastion(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("bastions remove", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -919,11 +890,14 @@ func removeBastion(args []string, config *Configuration) error {
 	// Get bastion name
 	var targetBastionName string
 
-	if *bastionName != "" {
+	switch {
+	case *bastionName != "":
 		targetBastionName = *bastionName
-	} else if *bastionNameShort != "" {
+	case *bastionNameShort != "":
 		targetBastionName = *bastionNameShort
-	} else {
+	case flagSet.NArg() > 0:
+		targetBastionName = flagSet.Arg(0)
+	default:
 		// Prompt for bastion name
 		fmt.Print("Enter bastion name to remove: ")
 		nameInput, _ := reader.ReadString('\n')

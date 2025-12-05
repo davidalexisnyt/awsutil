@@ -54,6 +54,8 @@ var docsCSS string
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func showDocs() {
+	fmt.Println()
+
 	// Create HTTP handler
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/styles.css" {
@@ -123,6 +125,8 @@ func openBrowser(url string) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func showHelp(command string) {
+	fmt.Println()
+
 	if command == "" {
 		// General help - list all commands
 		fmt.Print(helpGeneral)

@@ -1185,6 +1185,8 @@ func updateInstance(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeInstance(args []string, config *Configuration) error {
+	fmt.Println()
+
 	flagSet := flag.NewFlagSet("instances remove", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -1216,11 +1218,14 @@ func removeInstance(args []string, config *Configuration) error {
 	// Get instance name
 	var targetInstanceName string
 
-	if *instanceName != "" {
+	switch {
+	case *instanceName != "":
 		targetInstanceName = *instanceName
-	} else if *instanceNameShort != "" {
+	case *instanceNameShort != "":
 		targetInstanceName = *instanceNameShort
-	} else {
+	case flagSet.NArg() == 1:
+		targetInstanceName = flagSet.Arg(0)
+	default:
 		// Prompt for instance name
 		fmt.Print("Enter instance name to remove: ")
 		nameInput, _ := reader.ReadString('\n')

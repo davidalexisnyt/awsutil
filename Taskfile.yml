@@ -7,3 +7,30 @@ tasks:
     cmds:
       - go build -ldflags="-s -w"
     silent: true
+
+  buildall:
+    desc: Build for Windows, Linux, and Mac
+    cmds:
+      - echo "Building for Windows..."
+      - GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o awsdo-windows-amd64.exe
+      - echo "Building for Linux..."
+      - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o awsdo-linux-amd64
+      - echo "Building for Mac (Intel)..."
+      - GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o awsdo-darwin-amd64
+      - echo "Building for Mac (Apple Silicon)..."
+      - GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o awsdo-darwin-arm64
+      - echo "Build complete!"
+
+  buildall-windows:
+    desc: Build for Windows, Linux, and Mac
+    cmds:
+      - echo "Building for Windows..."
+      - $env:GOOS="windows"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o awsdo-windows-amd64.exe
+      - echo "Building for Linux..."
+      - $env:GOOS="linux"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o awsdo-linux-amd64
+      - echo "Building for Mac (Intel)..."
+      - $env:GOOS="darwin"; $env:GOARCH="amd64"; go build -ldflags="-s -w" -o awsdo-darwin-amd64
+      - echo "Building for Mac (Apple Silicon)..."
+      - $env:GOOS="darwin"; $env:GOARCH="arm64"; go build -ldflags="-s -w" -o awsdo-darwin-arm64
+      - Remove-Item Env:\GOOS; Remove-Item Env:\GOARCH
+      - echo "Build complete!"
