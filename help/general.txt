@@ -13,6 +13,7 @@ COMMANDS:
     repl        Start interactive REPL mode
     docs        Display the full documentation in a web page
     help        Show help information
+    version     Show application version
 
     # Linux-style commands (alternative syntax)
     ls, list    List instances or bastions (e.g., 'ls instances', 'list bastions')
