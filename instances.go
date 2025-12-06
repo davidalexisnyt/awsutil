@@ -160,7 +160,8 @@ func findInstances(args []string, config *Configuration) error {
 		return err
 	}
 
-	if len(instanceList) == 1 && !strings.Contains(filter, "bastion") {
+	// Set the default instance if there is only one instance in the query results
+	if len(instanceList) == 1 {
 		profileInfo := config.Profiles[currentProfile]
 		profileInfo.Name = currentProfile
 

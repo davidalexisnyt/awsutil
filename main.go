@@ -167,6 +167,10 @@ func main() {
 			fmt.Println("Use 'awsdo find instance'")
 			os.Exit(1)
 		}
+
+	case "version":
+		fmt.Println("awsdo version", Version)
+		return
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'awsdo help' to see available commands.")
