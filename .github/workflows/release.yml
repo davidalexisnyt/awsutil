@@ -139,9 +139,20 @@ jobs:
           GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.Version=${{ steps.bump_version.outputs.new_version }}" -o awsdo-darwin-arm64
         continue-on-error: false
 
+      - name: Verify build artifacts
+        if: steps.check_commit.outputs.skip_release != 'true'
+        run: |
+          echo "Verifying build artifacts exist..."
+          ls -lh awsdo-* || echo "No artifacts found!"
+          if [ ! -f "awsdo-windows-amd64.exe" ] || [ ! -f "awsdo-linux-amd64" ] || [ ! -f "awsdo-linux-arm64" ] || [ ! -f "awsdo-darwin-amd64" ] || [ ! -f "awsdo-darwin-arm64" ]; then
+            echo "Error: One or more build artifacts are missing!"
+            exit 1
+          fi
+          echo "All build artifacts verified successfully"
+
       - name: Create release
         if: steps.check_commit.outputs.skip_release != 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.tag }}
           name: Release ${{ env.tag }}
@@ -162,5 +173,7 @@ jobs:
             awsdo-darwin-arm64
           draft: false
           prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
