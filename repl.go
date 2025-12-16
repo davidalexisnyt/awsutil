@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode"
 
 	"golang.org/x/term"
 )
@@ -136,6 +137,82 @@ func (le *lineEditor) moveCursorRight() {
 	}
 }
 
+// moveCursorToBeginning moves cursor to the beginning of the line
+func (le *lineEditor) moveCursorToBeginning() {
+	if le.cursorPos > 0 {
+		le.cursorPos = 0
+		le.redrawLine()
+	}
+}
+
+// moveCursorToEnd moves cursor to the end of the line
+func (le *lineEditor) moveCursorToEnd() {
+	if le.cursorPos < len(le.line) {
+		le.cursorPos = len(le.line)
+		le.redrawLine()
+	}
+}
+
+// moveCursorWordLeft moves cursor back one word
+// A word is a sequence of alphanumeric characters and underscores
+func (le *lineEditor) moveCursorWordLeft() {
+	if le.cursorPos == 0 {
+		return
+	}
+
+	pos := le.cursorPos
+
+	// Skip any trailing whitespace
+	for pos > 0 && unicode.IsSpace(le.line[pos-1]) {
+		pos--
+	}
+
+	// Skip word characters to find the start of the current/previous word
+	for pos > 0 {
+		r := le.line[pos-1]
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+			pos--
+		} else {
+			break
+		}
+	}
+
+	if pos != le.cursorPos {
+		le.cursorPos = pos
+		le.redrawLine()
+	}
+}
+
+// moveCursorWordRight moves cursor forward one word
+// A word is a sequence of alphanumeric characters and underscores
+func (le *lineEditor) moveCursorWordRight() {
+	if le.cursorPos >= len(le.line) {
+		return
+	}
+
+	pos := le.cursorPos
+
+	// Skip current word characters
+	for pos < len(le.line) {
+		r := le.line[pos]
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' {
+			pos++
+		} else {
+			break
+		}
+	}
+
+	// Skip whitespace to find the start of the next word
+	for pos < len(le.line) && unicode.IsSpace(le.line[pos]) {
+		pos++
+	}
+
+	if pos != le.cursorPos {
+		le.cursorPos = pos
+		le.redrawLine()
+	}
+}
+
 // setLine sets the current line content
 func (le *lineEditor) setLine(s string) {
 	le.line = []rune(s)
@@ -146,6 +223,28 @@ func (le *lineEditor) setLine(s string) {
 // getLine returns the current line as a string
 func (le *lineEditor) getLine() string {
 	return string(le.line)
+}
+
+// parseEscapeSequence parses an ANSI escape sequence after ESC[
+// Returns the sequence string (without ESC[), the terminating character, and any error
+// Example: ESC[1;5D -> returns "1;5", 'D', nil
+func parseEscapeSequence(reader *bufio.Reader) (string, byte, error) {
+	var seq []byte
+	for {
+		b, err := reader.ReadByte()
+		if err != nil {
+			return "", 0, err
+		}
+
+		// Check if this is a terminating character
+		// Terminating characters are letters (A-Z, a-z) or ~
+		if (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z') || b == '~' {
+			return string(seq), b, nil
+		}
+
+		// Otherwise, add to sequence
+		seq = append(seq, b)
+	}
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -188,13 +287,14 @@ func readLineWithEditing(reader *bufio.Reader, editor *lineEditor) (string, erro
 				}
 
 				if nextChar == '[' {
-					// Read the direction/action character
-					action, err := reader.ReadByte()
+					// Parse the full escape sequence
+					seq, termChar, err := parseEscapeSequence(reader)
 					if err != nil {
 						continue
 					}
 
-					switch action {
+					// Handle sequences based on terminating character
+					switch termChar {
 					case 'A': // Up arrow - history previous
 						if len(editor.history) > 0 {
 							if editor.histIndex == -1 {
@@ -216,13 +316,32 @@ func readLineWithEditing(reader *bufio.Reader, editor *lineEditor) (string, erro
 								editor.setLine("")
 							}
 						}
-					case 'C': // Right arrow
-						editor.moveCursorRight()
-					case 'D': // Left arrow
-						editor.moveCursorLeft()
-					case '3': // Delete key (ESC[3~)
-						nextChar, err := reader.ReadByte()
-						if err == nil && nextChar == '~' {
+					case 'C': // Right arrow or Ctrl+Right
+						// Check if this is Ctrl+Right (sequence contains "5" or "1;5")
+						if seq == "1;5" || seq == "5" {
+							editor.moveCursorWordRight()
+						} else {
+							editor.moveCursorRight()
+						}
+					case 'D': // Left arrow or Ctrl+Left
+						// Check if this is Ctrl+Left (sequence contains "5" or "1;5")
+						if seq == "1;5" || seq == "5" {
+							editor.moveCursorWordLeft()
+						} else {
+							editor.moveCursorLeft()
+						}
+					case 'H': // Home key
+						editor.moveCursorToBeginning()
+					case 'F': // End key
+						editor.moveCursorToEnd()
+					case '~': // Alternative sequences (Home, End, Delete, etc.)
+						// Handle sequences like ESC[1~, ESC[4~, ESC[3~
+						switch seq {
+						case "1": // Home (alternative)
+							editor.moveCursorToBeginning()
+						case "4": // End (alternative)
+							editor.moveCursorToEnd()
+						case "3": // Delete key
 							editor.deleteCharForward()
 						}
 					}
