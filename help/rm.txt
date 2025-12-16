@@ -1,0 +1,60 @@
+awsdo rm / remove - Remove instances or bastions (alias commands)
+
+USAGE:
+    awsdo rm instance [--profile <aws cli profile>] [--name <instance name>]
+    awsdo rm instances [--profile <aws cli profile>] [--name <instance name>]
+    awsdo remove instance [--profile <aws cli profile>] [--name <instance name>]
+    awsdo remove instances [--profile <aws cli profile>] [--name <instance name>]
+
+    awsdo rm bastion [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo rm bastions [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo remove bastion [--profile <aws cli profile>] [--name <bastion name>]
+    awsdo remove bastions [--profile <aws cli profile>] [--name <bastion name>]
+
+DESCRIPTION:
+    The 'rm' and 'remove' commands are aliases for the 'instances remove' and
+    'bastions remove' commands. They provide a Linux-style alternative syntax
+    for removing configured instances or bastions.
+
+    These commands are equivalent to:
+    - awsdo instances remove [options]
+    - awsdo bastions remove [options]
+
+REMOVING INSTANCES:
+    Removes a named EC2 instance from the configuration:
+    1. Prompts for instance name (or uses --name flag if provided)
+    2. Displays instance information
+    3. Asks for confirmation before removal
+    4. Clears default instance if the removed instance was the default
+
+    Examples:
+        awsdo rm instance
+        awsdo rm instance --name myinstance
+        awsdo rm instance -p dev -n myinstance
+        awsdo remove instances --name myinstance
+        awsdo remove instance -p dev
+
+REMOVING BASTIONS:
+    Removes a bastion configuration from the specified profile:
+    1. Prompts for bastion name if not provided via --name or -n flag
+    2. Displays the bastion information
+    3. Asks for confirmation before removal
+    4. Clear the default bastion if the removed bastion was the default
+
+    Examples:
+        awsdo rm bastion
+        awsdo rm bastion --name mybastion
+        awsdo rm bastion -p dev -n mybastion
+        awsdo remove bastions --name mybastion
+        awsdo remove bastion -p dev
+
+OPTIONS:
+    --profile, -p    AWS CLI profile to use
+    --name, -n       Instance or bastion name
+
+NOTES:
+    - Both 'rm' and 'remove' are valid command names
+    - You can use either singular (instance/bastion) or plural (instances/bastions) forms
+    - The instance/bastion name can be provided via the --name flag or will be prompted interactively
+    - For more information, see: awsdo help instances or awsdo help bastions
+

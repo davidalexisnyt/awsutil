@@ -1,0 +1,57 @@
+awsdo ls / list - List instances or bastions (alias commands)
+
+USAGE:
+    awsdo ls instances [--profile <aws cli profile>]
+    awsdo ls instance [--profile <aws cli profile>]
+    awsdo list instances [--profile <aws cli profile>]
+    awsdo list instance [--profile <aws cli profile>]
+
+    awsdo ls bastions [--profile <aws cli profile>]
+    awsdo ls bastion [--profile <aws cli profile>]
+    awsdo list bastions [--profile <aws cli profile>]
+    awsdo list bastion [--profile <aws cli profile>]
+
+DESCRIPTION:
+    The 'ls' and 'list' commands are aliases for the 'instances list' and
+    'bastions list' commands. They provide a Linux-style alternative syntax
+    for listing configured instances or bastions.
+
+    These commands are equivalent to:
+    - awsdo instances list [options]
+    - awsdo bastions list [options]
+
+LISTING INSTANCES:
+    Lists all configured EC2 instances for the specified profile in a vertical
+    format, showing name, instance ID, profile, and host for each instance.
+    The default instance (if set) will be marked with "(default)". If no
+    profile is specified, lists instances across all profiles.
+
+    Examples:
+        awsdo ls instances
+        awsdo ls instances --profile dev
+        awsdo ls instances -p dev
+        awsdo list instance
+        awsdo list instances -p prod
+
+LISTING BASTIONS:
+    Lists all configured bastions for the specified profile in a vertical
+    format, showing name, instance ID, host, port, and local port for each
+    bastion. The default bastion (if set) will be marked with "(default)".
+    If no profile is specified, lists bastions across all profiles.
+
+    Examples:
+        awsdo ls bastions
+        awsdo ls bastions --profile dev
+        awsdo ls bastions -p dev
+        awsdo list bastion
+        awsdo list bastions -p prod
+
+OPTIONS:
+    --profile, -p    AWS CLI profile to use
+
+NOTES:
+    - Both 'ls' and 'list' are valid command names
+    - You can use either singular (instance/bastion) or plural (instances/bastions) forms
+    - If no profile is specified, lists items across all profiles
+    - For more information, see: awsdo help instances or awsdo help bastions
+
