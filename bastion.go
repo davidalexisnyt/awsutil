@@ -10,12 +10,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listBastions(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastions list", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastions list", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
@@ -24,8 +23,7 @@ func listBastions(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	// List all bastions across all profiles
@@ -225,7 +223,7 @@ func listBastions(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func addBastion(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastions add", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastions add", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
@@ -234,8 +232,7 @@ func addBastion(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)
@@ -417,7 +414,7 @@ func addBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func updateBastion(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastions update", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastions update", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	bastionName := flagSet.String("name", "", "--name <bastion name>")
@@ -428,8 +425,7 @@ func updateBastion(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)
@@ -626,7 +622,7 @@ func updateBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func startBastionTunnel(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastion", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	bastionNameFull := flagSet.String("name", "", "--name <bastion name>")
@@ -640,8 +636,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	// Handle bastion name lookup logic
@@ -809,7 +804,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 
 	// Set up signal handling to catch Ctrl-C
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	setupSignalHandler(signalChan)
 	defer signal.Stop(signalChan)
 
 	// Wait for command completion or interrupt in a goroutine
@@ -849,7 +844,7 @@ func startBastionTunnel(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeBastion(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("bastions remove", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("bastions remove", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	bastionName := flagSet.String("name", "", "--name <bastion name>")
@@ -860,8 +855,7 @@ func removeBastion(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)

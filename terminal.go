@@ -11,7 +11,7 @@ import (
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // startSSMSession starts a remote SSM terminal session against the specified instance.
 func startSSMSession(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("terminal", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("terminal", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceHost := flagSet.String("host", "", "--host <instance host>")
@@ -24,8 +24,7 @@ func startSSMSession(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	// Handle instance lookup logic

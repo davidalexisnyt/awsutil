@@ -11,7 +11,7 @@ import (
 func login(args []string, config *Configuration) error {
 	fmt.Println()
 
-	flagSet := flag.NewFlagSet("login", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("login", flag.ContinueOnError)
 	profileFlag := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 

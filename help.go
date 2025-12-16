@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"os/signal"
 	"runtime"
-	"syscall"
 	"time"
 )
 
@@ -87,7 +85,7 @@ func showDocs() {
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	setupSignalHandler(sigChan)
 
 	// Open browser
 	go openBrowser(url)

@@ -36,7 +36,7 @@ func formatLaunchTime(launchTimeStr string) string {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func findInstances(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("instances find", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("instances find", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	filterFlag := flagSet.String("filter", "", "--filter <filter text>")
@@ -47,8 +47,7 @@ func findInstances(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	var filter string
@@ -379,7 +378,7 @@ func findInstances(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listInstances(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("instances list", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("instances list", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 
@@ -388,8 +387,7 @@ func listInstances(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	// List all instances across all profiles
@@ -568,7 +566,7 @@ func listInstances(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func addInstance(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("instances add", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("instances add", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
@@ -581,8 +579,7 @@ func addInstance(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)
@@ -890,8 +887,8 @@ func addInstance(args []string, config *Configuration) error {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-func updateInstance(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("instances update", flag.ExitOnError)
+func updateInstance(args []string, config *Configuration) {
+	flagSet := flag.NewFlagSet("instances update", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
@@ -902,20 +899,19 @@ func updateInstance(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)
 	if err != nil {
-		return err
+		return
 	}
 
 	// Ensure that we're logged in before running the command
 	if !isLoggedIn(currentProfile) {
 		loginArgs := []string{"--profile", currentProfile}
 		if err := login(loginArgs, config); err != nil {
-			return err
+			return
 		}
 	}
 
@@ -939,14 +935,14 @@ func updateInstance(args []string, config *Configuration) error {
 		targetInstanceName = strings.TrimSpace(nameInput)
 
 		if targetInstanceName == "" {
-			return fmt.Errorf("instance name is required")
+			return
 		}
 	}
 
 	// Check if instance exists
 	existingInstance, exists := profileInfo.Instances[targetInstanceName]
 	if !exists {
-		return fmt.Errorf("instance '%s' not found in profile '%s'", targetInstanceName, currentProfile)
+		return
 	}
 
 	// Get filter string (optional - if not provided, prompt for it)
@@ -969,11 +965,11 @@ func updateInstance(args []string, config *Configuration) error {
 	fmt.Println("\nQuerying EC2 instances...")
 	instances, err := queryEC2Instances(currentProfile, filter)
 	if err != nil {
-		return fmt.Errorf("failed to query EC2 instances: %v", err)
+		return
 	}
 
 	if len(instances) == 0 {
-		return fmt.Errorf("no EC2 instances found matching filter '%s'", filter)
+		return
 	}
 
 	// Display instances in a formatted table
@@ -1174,7 +1170,7 @@ func updateInstance(args []string, config *Configuration) error {
 	instIndex, err := strconv.Atoi(strings.TrimSpace(instSelection))
 
 	if err != nil || instIndex < 1 || instIndex > len(instances) {
-		return fmt.Errorf("invalid selection")
+		return
 	}
 
 	selectedInstance := instances[instIndex-1]
@@ -1200,12 +1196,12 @@ func updateInstance(args []string, config *Configuration) error {
 
 	fmt.Printf("\nInstance '%s' (ID: %s) updated successfully!\n", targetInstanceName, selectedInstance.Instance)
 
-	return nil
+	return
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeInstance(args []string, config *Configuration) error {
-	flagSet := flag.NewFlagSet("instances remove", flag.ExitOnError)
+	flagSet := flag.NewFlagSet("instances remove", flag.ContinueOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
 	instanceName := flagSet.String("name", "", "--name <instance name>")
@@ -1216,8 +1212,7 @@ func removeInstance(args []string, config *Configuration) error {
 	}
 
 	if err := flagSet.Parse(args); err != nil {
-		flagSet.Usage()
-		return fmt.Errorf("failed to parse options")
+		return nil
 	}
 
 	currentProfile, err := ensureProfile(config, profile, profileShort)

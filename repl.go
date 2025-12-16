@@ -489,14 +489,10 @@ func startREPL(configFile string, config *Configuration) {
 		}
 
 		// Execute command
-		err = executeREPLCommand(command, args[1:], config)
-		if err != nil {
-			fmt.Println(err.Error())
-			fmt.Println()
-		} else {
-			// Save configuration after successful command
-			saveConfiguration(configFile, config)
-		}
+		executeREPLCommand(command, args[1:], config)
+
+		// Save configuration after successful command
+		saveConfiguration(configFile, config)
 
 		// Put terminal back in raw mode for next input
 		if isTerminal && originalState != nil {
@@ -509,7 +505,7 @@ func startREPL(configFile string, config *Configuration) {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // executeREPLCommand routes commands to the appropriate handlers (similar to main.go)
-func executeREPLCommand(command string, args []string, config *Configuration) error {
+func executeREPLCommand(command string, args []string, config *Configuration) {
 	fmt.Println()
 
 	switch command {
@@ -521,130 +517,119 @@ func executeREPLCommand(command string, args []string, config *Configuration) er
 		}
 
 		fmt.Println()
-		return nil
 	case "login":
-		return login(args, config)
+		login(args, config)
 	case "instances":
 		if len(args) < 1 {
-			return listInstances(args, config)
+			listInstances(args, config)
+			return
 		}
 
 		subcommand := strings.ToLower(args[0])
 
 		switch subcommand {
 		case "find":
-			return findInstances(args[1:], config)
+			findInstances(args[1:], config)
 		case "list", "ls":
-			return listInstances(args[1:], config)
+			listInstances(args[1:], config)
 		case "add":
-			return addInstance(args[1:], config)
+			addInstance(args[1:], config)
 		case "update":
-			return updateInstance(args[1:], config)
+			updateInstance(args[1:], config)
 		case "remove", "rm":
-			return removeInstance(args[1:], config)
+			removeInstance(args[1:], config)
 		default:
 			fmt.Printf("Invalid instances subcommand: %s\n", subcommand)
 			fmt.Println("Use 'instances find' to find instances, 'instances list' to list configured instances, 'instances add' to add an instance, 'instances update' to update an instance, 'instances remove' to remove an instance, or 'help instances' for more information.")
-			return nil
 		}
 	case "terminal":
-		return startSSMSession(args, config)
+		startSSMSession(args, config)
 	case "bastion":
-		return startBastionTunnel(args, config)
+		startBastionTunnel(args, config)
 	case "bastions":
 		if len(args) < 1 {
 			// Default to 'list' if no subcommand provided
-			return listBastions(args, config)
+			listBastions(args, config)
+			return
 		}
 
 		subcommand := strings.ToLower(args[0])
 
 		switch subcommand {
 		case "list", "ls":
-			return listBastions(args[1:], config)
+			listBastions(args[1:], config)
 		case "add":
-			return addBastion(args[1:], config)
+			addBastion(args[1:], config)
 		case "update", "up":
-			return updateBastion(args[1:], config)
+			updateBastion(args[1:], config)
 		case "remove", "rm":
-			return removeBastion(args[1:], config)
+			removeBastion(args[1:], config)
 		default:
 			fmt.Printf("Invalid bastions subcommand: %s\n", subcommand)
 			fmt.Println("Use 'bastions list' to list bastions, 'bastions add' to add a new bastion, 'bastions update' to update an existing bastion, or 'bastions remove' to remove a bastion.")
-			return nil
 		}
 	case "docs":
 		showDocs()
-		return nil
 	case "clear", "cls", "clr", ".c":
 		fmt.Print(clearScreen)
-		return nil
 	case "ls", "list":
 		if len(args) < 1 {
 			fmt.Println("Usage: ls <instances|bastions> [options]")
 			fmt.Println("   or: list <instances|bastions> [options]")
-			return nil
 		}
 		object := strings.ToLower(args[0])
 		switch object {
 		case "instances", "instance":
-			return listInstances(args[1:], config)
+			listInstances(args[1:], config)
 		case "bastions", "bastion":
-			return listBastions(args[1:], config)
+			listBastions(args[1:], config)
 		default:
 			fmt.Printf("Invalid object: %s\n", object)
 			fmt.Println("Use 'ls instances' or 'ls bastions'")
-			return nil
 		}
 	case "add":
 		if len(args) < 1 {
 			fmt.Println("Usage: add <instance|bastion> [options]")
-			return nil
 		}
+
 		object := strings.ToLower(args[0])
 		switch object {
 		case "instance", "instances":
-			return addInstance(args[1:], config)
+			addInstance(args[1:], config)
 		case "bastion", "bastions":
-			return addBastion(args[1:], config)
+			addBastion(args[1:], config)
 		default:
 			fmt.Printf("Invalid object: %s\n", object)
 			fmt.Println("Use 'add instance' or 'add bastion'")
-			return nil
 		}
 	case "rm":
 		if len(args) < 1 {
 			fmt.Println("Usage: rm <instance|bastion> [options]")
-			return nil
 		}
 		object := strings.ToLower(args[0])
 		switch object {
 		case "instance", "instances":
-			return removeInstance(args[1:], config)
+			removeInstance(args[1:], config)
 		case "bastion", "bastions":
-			return removeBastion(args[1:], config)
+			removeBastion(args[1:], config)
 		default:
 			fmt.Printf("Invalid object: %s\n", object)
 			fmt.Println("Use 'rm instance' or 'rm bastion'")
-			return nil
 		}
 	case "find":
 		if len(args) < 1 {
 			fmt.Println("Usage: find <instance> [options]")
-			return nil
 		}
 		object := strings.ToLower(args[0])
 		switch object {
 		case "instance", "instances":
-			return findInstances(args[1:], config)
+			findInstances(args[1:], config)
 		default:
 			fmt.Printf("Invalid object: %s\n", object)
 			fmt.Println("Use 'find instance'")
-			return nil
 		}
 	default:
 		fmt.Printf("Invalid command: %s\n", command)
 		fmt.Println("Use 'help' to see available commands.")
-		return nil
 	}
 }

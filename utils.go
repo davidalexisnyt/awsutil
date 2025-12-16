@@ -5,6 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -37,4 +41,17 @@ func generateBastionID() (string, error) {
 	}
 
 	return hex.EncodeToString(bytes), nil
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// setupSignalHandler sets up signal handling for Ctrl+C that works on both Windows and Unix systems.
+// On Windows, it uses console control handlers to catch Ctrl+C events.
+// On Unix systems, it uses standard signal handling.
+func setupSignalHandler(sigChan chan os.Signal) {
+	if runtime.GOOS == "windows" {
+		setupSignalHandlerWindows(sigChan)
+	} else {
+		// On Unix systems, standard signal handling works fine
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	}
 }
