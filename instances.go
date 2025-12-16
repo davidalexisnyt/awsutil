@@ -42,8 +42,6 @@ func findInstances(args []string, config *Configuration) error {
 	filterFlag := flagSet.String("filter", "", "--filter <filter text>")
 	filterShort := flagSet.String("f", "", "--filter <filter text>")
 
-	fmt.Println()
-
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances find [--profile <aws cli profile>] [--filter <filter text>]")
 	}
@@ -64,10 +62,12 @@ func findInstances(args []string, config *Configuration) error {
 		fmt.Print("Enter filter text: ")
 		filterInput, _ := reader.ReadString('\n')
 		filter = strings.TrimSpace(filterInput)
+
 		if filter == "" {
 			return fmt.Errorf("filter text cannot be empty")
 		}
 	}
+
 	currentProfile, err := ensureProfile(config, profile, profileShort)
 	if err != nil {
 		return err
@@ -576,8 +576,6 @@ func addInstance(args []string, config *Configuration) error {
 	filterFlag := flagSet.String("filter", "", "--filter <filter text>")
 	filterShort := flagSet.String("f", "", "--filter <filter text>")
 
-	fmt.Println()
-
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances add [--profile <aws cli profile>] [--name <instance name>] [--filter <filter text>]")
 	}
@@ -899,8 +897,6 @@ func updateInstance(args []string, config *Configuration) error {
 	instanceName := flagSet.String("name", "", "--name <instance name>")
 	instanceNameShort := flagSet.String("n", "", "--name <instance name>")
 
-	fmt.Println()
-
 	flagSet.Usage = func() {
 		fmt.Println("USAGE:\n    awsdo instances update [--profile <aws cli profile>] [--name <instance name>] [<filter string>]")
 	}
@@ -1209,8 +1205,6 @@ func updateInstance(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeInstance(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("instances remove", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")

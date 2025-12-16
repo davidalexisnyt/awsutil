@@ -391,6 +391,8 @@ func startREPL(configFile string, config *Configuration) {
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // executeREPLCommand routes commands to the appropriate handlers (similar to main.go)
 func executeREPLCommand(command string, args []string, config *Configuration) error {
+	fmt.Println()
+
 	switch command {
 	case "help", ":help", ".h":
 		if len(args) > 0 {

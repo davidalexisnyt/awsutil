@@ -15,8 +15,6 @@ import (
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func listBastions(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("bastions list", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -227,8 +225,6 @@ func listBastions(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func addBastion(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("bastions add", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -421,8 +417,6 @@ func addBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func updateBastion(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("bastions update", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -632,8 +626,6 @@ func updateBastion(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func startBastionTunnel(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("bastion", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
@@ -857,8 +849,6 @@ func startBastionTunnel(args []string, config *Configuration) error {
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 func removeBastion(args []string, config *Configuration) error {
-	fmt.Println()
-
 	flagSet := flag.NewFlagSet("bastions remove", flag.ExitOnError)
 	profile := flagSet.String("profile", "", "--profile <aws cli profile>")
 	profileShort := flagSet.String("p", "", "--profile <aws cli profile>")
